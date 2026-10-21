@@ -203,6 +203,28 @@
     overflow-x: hidden;
   }
 
+  /* Logo animasi — meniru AnimatedLogo Android (periode 2.6 dtk):
+     ayun kiri-kanan ±8px, naik-turun ±5px, denyut opacity 0.85–1.0,
+     skala 1.0–1.05. */
+  @keyframes logo-sway {
+    0%   { transform: translate(0, -5px) scale(1);       opacity: 0.85; }
+    25%  { transform: translate(8px, 0) scale(1.05);     opacity: 1; }
+    50%  { transform: translate(0, 5px) scale(1);        opacity: 0.85; }
+    75%  { transform: translate(-8px, 0) scale(1.05);    opacity: 1; }
+    100% { transform: translate(0, -5px) scale(1);       opacity: 0.85; }
+  }
+
+  .logo-float {
+    animation: logo-sway 2.6s ease-in-out infinite;
+    will-change: transform, opacity;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .logo-float {
+      animation: none;
+    }
+  }
+
   .animate-in-up {
     animation: in-up 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }

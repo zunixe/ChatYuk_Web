@@ -12,7 +12,7 @@ export function ChatsEmptyState() {
       <div className="pointer-events-none absolute -right-12 bottom-8 h-72 w-72 rounded-full bg-accent/8 blur-[100px]" />
 
       <div className="relative">
-        <LogoMark className="h-16 w-16 rounded-[22px]" />
+        <LogoMark size={64} radius={22} />
         <span className="absolute -bottom-1.5 -right-1.5 flex h-7 w-7 items-center justify-center rounded-full border-2 border-bg bg-accent text-white">
           <Sparkles className="h-3.5 w-3.5" />
         </span>

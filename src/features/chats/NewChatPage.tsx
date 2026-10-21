@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, MessageCirclePlus, Search, Settings, Sparkles, Users, X } from 'lucide-react'
+import { ArrowLeft, MessageCirclePlus, Search, Settings, Sparkles, X } from 'lucide-react'
 import { useDeferredValue, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -13,11 +13,9 @@ import { useBlockedSet } from '@/hooks/useBlocks'
 import { ensureChat } from '@/lib/api/chats'
 import { errorMessage } from '@/lib/errors'
 import { resolveAvatar } from '@/lib/media'
-import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth'
 import type { OnlineUser } from '@/lib/types'
 
-type Tab = 'online' | 'search'
 
 function UserRow({
   user,
@@ -96,7 +94,6 @@ export function NewChatPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const profile = useAuthStore((state) => state.profile)
-  const [tab, setTab] = useState<Tab>('online')
   // Filter negara = MULTI-select (mobile: `_negaraSel`), kosong = semua.
   const [countries, setCountries] = useState<string[]>([])
   const [term, setTerm] = useState('')
@@ -109,9 +106,15 @@ export function NewChatPage() {
   const onlineQuery = useOnlineUsers(null)
   const searchQuery = useUserSearch(deferredTerm, myUid)
 
+  // Pencarian langsung di kolom ketik (≥2 huruf) — tanpa tab terpisah.
+  const canSearch = deferredTerm.trim().length >= 2
+  const searching = canSearch
+
   const blockedSet = useBlockedSet(myUid)
   const users = useMemo(() => {
-    const source = tab === 'search' ? (searchQuery.data ?? []) : (onlineQuery.data ?? [])
+    // Pencarian langsung: jika user mengetik ≥2 huruf, pakai hasil pencarian;
+    // selain itu tampilkan pengguna online.
+    const source = searching ? (searchQuery.data ?? []) : (onlineQuery.data ?? [])
     return source.filter((user) => {
       if (user.id === myUid) return false
       if (user.is_registered === false) return false
@@ -121,15 +124,14 @@ export function NewChatPage() {
       if (gender !== 'all' && user.gender !== gender) return false
       return true
     })
-  }, [myUid, onlineQuery.data, searchQuery.data, tab, blockedSet, gender, countries])
+  }, [myUid, onlineQuery.data, searchQuery.data, searching, blockedSet, gender, countries])
 
   const uids = useMemo(() => users.map((user) => user.id), [users])
   const avatarsQuery = useAvatars(uids)
   const presenceQuery = usePresenceFor(uids)
 
-  const isLoading = tab === 'search' ? searchQuery.isLoading : onlineQuery.isLoading
-  const isError = tab === 'search' ? searchQuery.isError : onlineQuery.isError
-  const canSearch = deferredTerm.trim().length >= 2
+  const isLoading = searching ? searchQuery.isLoading : onlineQuery.isLoading
+  const isError = searching ? searchQuery.isError : onlineQuery.isError
 
   async function startChat(user: OnlineUser) {
     if (!myUid || startingUid) return
@@ -179,10 +181,7 @@ export function NewChatPage() {
           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-2" />
           <input
             value={term}
-            onChange={(event) => {
-              setTerm(event.target.value)
-              if (event.target.value.trim()) setTab('search')
-            }}
+            onChange={(event) => setTerm(event.target.value)}
             placeholder="Ketik nama panggilan (min. 2 huruf)…"
             className="h-11 w-full rounded-2xl border border-border bg-surface pl-10 pr-10 text-[13.5px] text-text outline-none transition placeholder:text-muted-2 focus:border-primary/40 focus:ring-2 focus:ring-primary/10"
             aria-label="Cari pengguna"
@@ -190,44 +189,13 @@ export function NewChatPage() {
           {term ? (
             <button
               type="button"
-              onClick={() => {
-                setTerm('')
-                setTab('online')
-              }}
+              onClick={() => setTerm('')}
               className="absolute right-2.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-muted-2 hover:bg-panel hover:text-text"
               aria-label="Hapus pencarian"
             >
               <X className="h-3.5 w-3.5" />
             </button>
           ) : null}
-        </div>
-
-        <div className="mt-3 flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => {
-              setTab('online')
-              setTerm('')
-            }}
-            className={cn(
-              'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-medium transition',
-              tab === 'online' ? 'bg-primary-soft text-primary' : 'text-muted hover:bg-panel',
-            )}
-          >
-            <Users className="h-3.5 w-3.5" />
-            Online
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab('search')}
-            className={cn(
-              'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-medium transition',
-              tab === 'search' ? 'bg-primary-soft text-primary' : 'text-muted hover:bg-panel',
-            )}
-          >
-            <Search className="h-3.5 w-3.5" />
-            Cari nama
-          </button>
         </div>
 
         {/* Filter berdampingan — sama persis dengan layar Online Android:
@@ -243,17 +211,7 @@ export function NewChatPage() {
         </div>
 
         <div className="mt-4 rounded-3xl border border-border bg-surface p-1.5 shadow-sm sm:p-2">
-          {tab === 'search' && !canSearch ? (
-            <div className="flex flex-col items-center px-6 py-14 text-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-soft text-primary">
-                <Search className="h-5 w-5" />
-              </div>
-              <p className="mt-3 text-[13px] font-medium text-text">Ketik minimal 2 huruf</p>
-              <p className="mt-1 max-w-[260px] text-[11.5px] leading-relaxed text-muted">
-                Pencarian memakai nama panggilan. Hasil hanya menampilkan pengguna terdaftar.
-              </p>
-            </div>
-          ) : isLoading ? (
+          {isLoading ? (
             <div className="space-y-1 p-1">
               {[0, 1, 2, 3, 4].map((key) => (
                 <div key={key} className="flex items-center gap-3 rounded-2xl px-3 py-3">
@@ -273,7 +231,7 @@ export function NewChatPage() {
                 size="sm"
                 variant="secondary"
                 className="mt-4"
-                onClick={() => void (tab === 'search' ? searchQuery.refetch() : onlineQuery.refetch())}
+                onClick={() => void (searching ? searchQuery.refetch() : onlineQuery.refetch())}
               >
                 Coba lagi
               </Button>
@@ -284,12 +242,12 @@ export function NewChatPage() {
                 <Sparkles className="h-5 w-5" />
               </div>
               <p className="mt-3 text-[13px] font-medium text-text">
-                {tab === 'search' ? 'Nama tidak ditemukan' : 'Belum ada yang online'}
+                {searching ? 'Nama tidak ditemukan' : 'Belum ada yang online'}
               </p>
               <p className="mt-1 max-w-[260px] text-[11.5px] leading-relaxed text-muted">
-                {tab === 'search'
+                {searching
                   ? 'Coba ejaan lain atau ajak temanmu bergabung ke ChatYuk.'
-                  : 'Coba lihat semua negara, atau cari teman lewat nama panggilan.'}
+                  : 'Coba ubah filter negara/gender, atau ketik nama di kolom pencarian.'}
               </p>
             </div>
           ) : (

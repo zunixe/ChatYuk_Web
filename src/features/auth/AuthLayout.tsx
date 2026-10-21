@@ -1,6 +1,6 @@
 import { MessageCircleMore, ShieldCheck, Sparkles, Zap } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { Logo } from '@/components/brand/Logo'
+import { AnimatedLogo, Logo, LogoMark } from '@/components/brand/Logo'
 import { config, envLabel } from '@/lib/runtime-config'
 import { cn } from '@/lib/utils'
 
@@ -38,17 +38,7 @@ export function AuthLayout({
         <div className="pointer-events-none absolute inset-0 opacity-[0.06] [background-image:radial-gradient(circle_at_1px_1px,#fff_1px,transparent_0)] [background-size:34px_34px]" />
 
         <div className="relative flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-accent shadow-lg">
-            <svg viewBox="0 0 32 32" className="h-6 w-6" fill="none">
-              <path
-                d="M6.5 13.2c0-4.4 4.2-8 9.5-8s9.5 3.6 9.5 8-4.2 8-9.5 8c-1.2 0-2.4-.2-3.5-.5l-4.4 2 1.1-3.7a7.3 7.3 0 0 1-2.7-5.8Z"
-                fill="white"
-              />
-              <circle cx="11.9" cy="13.2" r="1.35" fill="#2196f3" />
-              <circle cx="16" cy="13.2" r="1.35" fill="#2196f3" />
-              <circle cx="20.1" cy="13.2" r="1.35" fill="#2196f3" />
-            </svg>
-          </div>
+          <LogoMark size={44} radius={14} className="shadow-lg" />
           <div>
             <p className="font-display text-lg font-semibold">ChatYuk Web</p>
             <p className="text-xs text-white/60">Obrolan yang tetap dekat.</p>
@@ -100,6 +90,10 @@ export function AuthLayout({
         <div className="flex flex-1 items-center justify-center px-5 pb-10 pt-2 sm:px-8">
           <div className={cn('w-full', wide ? 'max-w-[520px]' : 'max-w-[400px]')}>
             <div className="mb-7">
+              {/* Logo animasi — sama dengan header aplikasi Android */}
+              <div className="mb-4 flex justify-center lg:justify-start">
+                <AnimatedLogo size={56} />
+              </div>
               <h2 className="font-display text-[26px] font-semibold tracking-tight text-text">{title}</h2>
               <p className="mt-1.5 text-sm leading-relaxed text-muted">{subtitle}</p>
             </div>

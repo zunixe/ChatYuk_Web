@@ -1,27 +1,39 @@
 import { cn } from '@/lib/utils'
 
-export function LogoMark({ className }: { className?: string }) {
+const APP_ICON = '/app-icon.png'
+
+/**
+ * Logo aplikasi — memakai aset yang SAMA dengan Android
+ * (`chatyuk/assets/app_icon.png`), bukan ikon SVG buatan.
+ *
+ * Acuan tampilan Android (`lib/widgets/auth_header.dart` → `AnimatedLogo`):
+ * - ukuran 56×56, sudut membulat 16px (`ClipRRect` radius 16)
+ * - dibungkus lingkaran tipis warna primary 8%
+ * - animasi halus: ayun kiri-kanan, mengambang naik-turun, denyut opacity
+ */
+export function LogoMark({
+  className,
+  size = 40,
+  radius = 14,
+}: {
+  className?: string
+  size?: number
+  radius?: number
+}) {
   return (
-    <span
-      className={cn(
-        'relative flex h-10 w-10 items-center justify-center rounded-[14px] bg-gradient-to-br from-primary via-sky-500 to-accent text-white shadow-[0_12px_28px_-14px_rgb(33_150_243/0.9)]',
-        className,
-      )}
-      aria-hidden
-    >
-      <svg viewBox="0 0 32 32" className="h-[62%] w-[62%]" fill="none">
-        <path
-          d="M6.5 13.2c0-4.4 4.2-8 9.5-8s9.5 3.6 9.5 8-4.2 8-9.5 8c-1.2 0-2.4-.2-3.5-.5l-4.4 2 1.1-3.7a7.3 7.3 0 0 1-2.7-5.8Z"
-          fill="currentColor"
-        />
-        <circle cx="11.9" cy="13.2" r="1.35" fill="#2196f3" />
-        <circle cx="16" cy="13.2" r="1.35" fill="#2196f3" />
-        <circle cx="20.1" cy="13.2" r="1.35" fill="#2196f3" />
-      </svg>
-    </span>
+    <img
+      src={APP_ICON}
+      alt="ChatYuk"
+      width={size}
+      height={size}
+      draggable={false}
+      className={cn('shrink-0 select-none object-cover', className)}
+      style={{ borderRadius: radius }}
+    />
   )
 }
 
+/** Logo + nama (dipakai header & sidebar). */
 export function Logo({
   className,
   subtitle,
@@ -39,5 +51,35 @@ export function Logo({
         {subtitle ? <div className="text-[11px] font-medium text-muted">{subtitle}</div> : null}
       </div>
     </div>
+  )
+}
+
+/**
+ * Logo animasi untuk halaman masuk/pendaftaran — meniru `AnimatedLogo`
+ * Android: lingkaran primary 8% + ikon 56px sudut 16px, dengan gerak
+ * mengayun, naik-turun, dan denyut opacity (periode 2.6 dtk).
+ */
+export function AnimatedLogo({
+  size = 56,
+  className,
+}: {
+  size?: number
+  className?: string
+}) {
+  return (
+    <span
+      className={cn('logo-glow inline-flex items-center justify-center', className)}
+      style={{ padding: size * 0.11, borderRadius: '50%', background: 'rgb(33 150 243 / 0.08)' }}
+    >
+      <img
+        src={APP_ICON}
+        alt="ChatYuk"
+        width={size}
+        height={size}
+        draggable={false}
+        className="logo-float select-none object-cover"
+        style={{ borderRadius: 16, width: size, height: size }}
+      />
+    </span>
   )
 }

@@ -69,7 +69,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           className="mb-6 rounded-2xl outline-none transition hover:scale-[1.03] focus-visible:ring-2 focus-visible:ring-primary/40"
           aria-label="ChatYuk"
         >
-          <LogoMark className="h-11 w-11" />
+          <LogoMark size={44} radius={14} />
         </Link>
 
         <nav className="flex w-full flex-col items-center gap-2">

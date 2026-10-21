@@ -1,4 +1,4 @@
-import { MessageCircle, Plus, RefreshCw, Search, X } from 'lucide-react'
+import { MessageCircle, Plus, RefreshCw, Search, Settings, X } from 'lucide-react'
 import { useDeferredValue, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Logo } from '@/components/brand/Logo'
@@ -70,10 +70,18 @@ export function ChatsPage() {
         <Link
           to="/new-chat"
           className="ml-auto flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-primary transition hover:bg-primary/15"
-          aria-label="Mulai chat baru"
-          title="Mulai chat baru"
+          aria-label="Buka Online"
+          title="Online"
         >
           <Plus className="h-5 w-5" />
+        </Link>
+        <Link
+          to="/settings"
+          className="flex h-10 w-10 items-center justify-center rounded-xl text-muted transition hover:bg-panel hover:text-text md:hidden"
+          aria-label="Pengaturan"
+          title="Pengaturan"
+        >
+          <Settings className="h-5 w-5" />
         </Link>
       </header>
 

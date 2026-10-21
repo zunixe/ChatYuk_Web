@@ -54,7 +54,7 @@ export function useChatComposer({
     const element = textareaRef.current
     if (!element) return
     element.style.height = '0px'
-    element.style.height = `${Math.min(element.scrollHeight, 144)}px`
+    element.style.height = `${Math.max(40, Math.min(element.scrollHeight, 96))}px`
   }, [text])
 
   // Reset saat ganti chat.

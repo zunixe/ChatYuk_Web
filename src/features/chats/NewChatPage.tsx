@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, MessageCirclePlus, Search, Sparkles, Users, X } from 'lucide-react'
+import { ArrowLeft, MessageCirclePlus, Search, Settings, Sparkles, Users, X } from 'lucide-react'
 import { useDeferredValue, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -136,12 +136,20 @@ export function NewChatPage() {
           </Link>
           <div className="min-w-0 flex-1">
             <h1 className="font-display text-[24px] font-semibold tracking-tight text-text">
-              Chat baru
+              Online
             </h1>
             <p className="mt-0.5 text-[12px] text-muted">
-              Temukan teman yang sedang online atau cari lewat nama panggilan.
+              Pengguna yang sedang online — pilih untuk mulai chat atau cari lewat nama.
             </p>
           </div>
+          <Link
+            to="/settings"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted transition hover:bg-panel hover:text-text md:hidden"
+            aria-label="Pengaturan"
+            title="Pengaturan"
+          >
+            <Settings className="h-5 w-5" />
+          </Link>
         </header>
 
         <div className="relative mt-5">

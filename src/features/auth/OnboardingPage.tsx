@@ -77,7 +77,7 @@ export function OnboardingPage() {
       })
       await refreshProfile()
       toast.success('Profil siap. Selamat mengobrol!')
-      navigate('/chats', { replace: true })
+      navigate('/new-chat', { replace: true })
     } catch (submitError) {
       setError(errorMessage(submitError))
     } finally {

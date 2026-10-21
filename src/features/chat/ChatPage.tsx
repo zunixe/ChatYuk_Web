@@ -718,7 +718,7 @@ export function ChatPage() {
             {imageBusy ? <Spinner /> : <ImagePlus className="h-[19px] w-[19px]" />}
           </button>
 
-          <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 flex-1 items-end">
             <textarea
               ref={textareaRef}
               value={text}
@@ -729,12 +729,9 @@ export function ChatPage() {
               onKeyDown={handleKeyDown}
               onBlur={stopTyping}
               placeholder="Tulis pesan…"
-              className="max-h-36 min-h-10 w-full resize-none rounded-2xl border border-transparent bg-panel px-3.5 py-2.5 text-[13.5px] leading-relaxed text-text outline-none transition placeholder:text-muted-2 focus:border-primary/30 focus:bg-surface focus:ring-2 focus:ring-primary/10"
+              className="composer-textarea block h-10 max-h-24 w-full resize-none rounded-2xl border border-transparent bg-panel px-3.5 py-[11px] text-[13.5px] leading-[18px] text-text outline-none transition placeholder:text-muted-2 focus:border-primary/30 focus:bg-surface focus:ring-2 focus:ring-primary/10"
               aria-label="Tulis pesan"
             />
-            {text.length > 1800 ? (
-              <div className="mt-0.5 text-right text-[9.5px] text-muted-2">{text.length}/2000</div>
-            ) : null}
           </div>
 
           <button
@@ -749,9 +746,14 @@ export function ChatPage() {
           </button>
         </div>
 
-        <p className="mx-auto mt-1 hidden max-w-4xl px-2 text-[9px] text-muted-2 sm:block">
-          Enter untuk kirim · Shift + Enter untuk baris baru
-        </p>
+        <div className="mx-auto mt-1 flex max-w-4xl items-center justify-between gap-2 px-2">
+          <p className="hidden text-[9px] text-muted-2 sm:block">
+            Enter untuk kirim · Shift + Enter untuk baris baru
+          </p>
+          {text.length > 1800 ? (
+            <span className="ml-auto text-[9.5px] text-muted-2">{text.length}/2000</span>
+          ) : null}
+        </div>
       </div>
 
       <ProfileDrawer

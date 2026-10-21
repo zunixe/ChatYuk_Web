@@ -27,7 +27,7 @@ export function LoginPage() {
     setLoading(true)
     try {
       await signInWithPassword(email.trim(), password)
-      navigate('/chats', { replace: true })
+      navigate('/new-chat', { replace: true })
     } catch (submitError) {
       setError(errorMessage(submitError))
     } finally {

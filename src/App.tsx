@@ -63,7 +63,7 @@ function PublicOnly({ children }: { children: ReactNode }) {
   if (!initialized) return <FullPageSpinner />
   if (session) {
     if (profileLoading) return <FullPageSpinner label="Menyiapkan profil…" />
-    return <Navigate to={needsOnboarding(profile) ? '/onboarding' : '/chats'} replace />
+    return <Navigate to={needsOnboarding(profile) ? '/onboarding' : '/new-chat'} replace />
   }
   return <>{children}</>
 }
@@ -79,7 +79,7 @@ function OnboardingGate() {
   if (!session) return <Navigate to="/login" replace />
   if (profileError) return <ConnectionError />
   if (profileLoading) return <FullPageSpinner label="Menyiapkan profil…" />
-  if (!needsOnboarding(profile)) return <Navigate to="/chats" replace />
+  if (!needsOnboarding(profile)) return <Navigate to="/new-chat" replace />
   return <OnboardingPage />
 }
 

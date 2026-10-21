@@ -75,7 +75,7 @@ export function WelcomePage() {
       })
       await refreshProfile()
       toast.success('Selamat datang di ChatYuk!')
-      navigate('/chats', { replace: true })
+      navigate('/new-chat', { replace: true })
     } catch (submitError) {
       setError(errorMessage(submitError))
       setLoading(false)

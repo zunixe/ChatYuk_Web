@@ -4,7 +4,7 @@ import {
   Moon,
   Settings,
   Sun,
-  UserRoundPlus,
+  Users,
   WifiOff,
 } from 'lucide-react'
 import type { ReactNode } from 'react'
@@ -28,10 +28,11 @@ import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
 
+// Menu utama — sama dengan aplikasi Android: Online & Chat.
+// Pengaturan tetap ada di menu profil (desktop) dan header Chat (mobile).
 const NAV = [
+  { to: '/new-chat', label: 'Online', icon: Users },
   { to: '/chats', label: 'Chat', icon: MessageCircle },
-  { to: '/new-chat', label: 'Chat baru', icon: UserRoundPlus },
-  { to: '/settings', label: 'Pengaturan', icon: Settings },
 ]
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -98,6 +99,19 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
 
         <div className="mt-auto flex flex-col items-center gap-3">
+          <NavLink
+            to="/settings"
+            title="Pengaturan"
+            aria-label="Pengaturan"
+            className={({ isActive }) =>
+              cn(
+                'flex h-11 w-11 items-center justify-center rounded-2xl text-muted transition',
+                isActive ? 'bg-primary-soft text-primary' : 'hover:bg-panel hover:text-text',
+              )
+            }
+          >
+            <Settings className="h-[21px] w-[21px]" strokeWidth={2} />
+          </NavLink>
           <button
             type="button"
             onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
@@ -165,7 +179,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
-        <div className="mx-auto grid max-w-md grid-cols-3">
+        <div className="mx-auto grid max-w-md grid-cols-2">
           {NAV.map((item) => (
             <NavLink
               key={item.to}

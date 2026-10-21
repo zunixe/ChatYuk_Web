@@ -1,0 +1,116 @@
+import { MessageCircleMore, ShieldCheck, Sparkles, Zap } from 'lucide-react'
+import type { ReactNode } from 'react'
+import { Logo } from '@/components/brand/Logo'
+import { config, envLabel } from '@/lib/runtime-config'
+import { cn } from '@/lib/utils'
+
+const YEAR = new Date().getFullYear()
+const SUPABASE_HOST = (() => {
+  try {
+    return new URL(config.supabaseUrl).host
+  } catch {
+    return config.supabaseUrl
+  }
+})()
+
+const FEATURES = [
+  { icon: Zap, title: 'Realtime tanpa jeda', text: 'Pesan, typing, dan tanda dibaca langsung tersinkron.' },
+  { icon: MessageCircleMore, title: 'Nyaman di semua layar', text: 'Layout ala WhatsApp Web, dari HP sampai desktop.' },
+  { icon: ShieldCheck, title: 'Privasi terkendali', text: 'Atur siapa yang bisa melihat status dan foto profil.' },
+]
+
+export function AuthLayout({
+  title,
+  subtitle,
+  children,
+  wide = false,
+}: {
+  title: string
+  subtitle: string
+  children: ReactNode
+  wide?: boolean
+}) {
+  return (
+    <div className="relative flex min-h-dvh items-stretch bg-bg">
+      <section className="relative hidden w-[46%] max-w-[620px] flex-col justify-between overflow-hidden bg-[#07131f] px-12 py-10 text-white lg:flex">
+        <div className="pointer-events-none absolute -left-24 top-1/4 h-72 w-72 rounded-full bg-primary/30 blur-[90px]" />
+        <div className="pointer-events-none absolute -right-20 bottom-0 h-80 w-80 rounded-full bg-accent/20 blur-[110px]" />
+        <div className="pointer-events-none absolute inset-0 opacity-[0.06] [background-image:radial-gradient(circle_at_1px_1px,#fff_1px,transparent_0)] [background-size:34px_34px]" />
+
+        <div className="relative flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-accent shadow-lg">
+            <svg viewBox="0 0 32 32" className="h-6 w-6" fill="none">
+              <path
+                d="M6.5 13.2c0-4.4 4.2-8 9.5-8s9.5 3.6 9.5 8-4.2 8-9.5 8c-1.2 0-2.4-.2-3.5-.5l-4.4 2 1.1-3.7a7.3 7.3 0 0 1-2.7-5.8Z"
+                fill="white"
+              />
+              <circle cx="11.9" cy="13.2" r="1.35" fill="#2196f3" />
+              <circle cx="16" cy="13.2" r="1.35" fill="#2196f3" />
+              <circle cx="20.1" cy="13.2" r="1.35" fill="#2196f3" />
+            </svg>
+          </div>
+          <div>
+            <p className="font-display text-lg font-semibold">ChatYuk Web</p>
+            <p className="text-xs text-white/60">Obrolan yang tetap dekat.</p>
+          </div>
+        </div>
+
+        <div className="relative max-w-md">
+          <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-white/70">
+            <Sparkles className="h-3.5 w-3.5" /> WhatsApp-style, ChatYuk soul
+          </p>
+          <h1 className="font-display text-[34px] font-semibold leading-[1.12] tracking-tight">
+            Ngobrol lancar,
+            <br />
+            di mana pun kamu.
+          </h1>
+          <p className="mt-4 text-sm leading-relaxed text-white/65">
+            Semua percakapan ChatYuk-mu kini hadir di browser. Tanpa install, tanpa ribet —
+            cukup masuk dan lanjutkan obrolan.
+          </p>
+
+          <div className="mt-9 space-y-3.5">
+            {FEATURES.map((feature) => (
+              <div key={feature.title} className="flex gap-3 rounded-2xl border border-white/10 bg-white/[0.045] p-3.5">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10">
+                  <feature.icon className="h-4 w-4 text-accent" />
+                </div>
+                <div>
+                  <p className="text-[13px] font-medium">{feature.title}</p>
+                  <p className="mt-0.5 text-[12px] leading-relaxed text-white/55">{feature.text}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <p className="relative text-[11px] text-white/40">
+          © {YEAR} ChatYuk · {envLabel} · {SUPABASE_HOST}
+        </p>
+      </section>
+
+      <section className="flex flex-1 flex-col">
+        <header className="flex items-center justify-between px-5 py-5 sm:px-8 lg:hidden">
+          <Logo subtitle="Web" />
+          <span className="rounded-full border border-border bg-surface px-2.5 py-1 text-[10px] font-semibold tracking-wider text-muted">
+            {envLabel}
+          </span>
+        </header>
+
+        <div className="flex flex-1 items-center justify-center px-5 pb-10 pt-2 sm:px-8">
+          <div className={cn('w-full', wide ? 'max-w-[520px]' : 'max-w-[400px]')}>
+            <div className="mb-7">
+              <h2 className="font-display text-[26px] font-semibold tracking-tight text-text">{title}</h2>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted">{subtitle}</p>
+            </div>
+            {children}
+          </div>
+        </div>
+
+        <footer className="px-5 pb-6 text-center text-[11px] text-muted-2 lg:hidden">
+          {envLabel} · {new URL(config.supabaseUrl).host}
+        </footer>
+      </section>
+    </div>
+  )
+}

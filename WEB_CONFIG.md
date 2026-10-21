@@ -1,0 +1,369 @@
+# ChatYuk Web — Konfigurasi
+
+Catatan konfigurasi ChatYuk Web (SPA di `~/Documents/chatyuk-web`) beserta
+backend Supabase lokal yang dipakainya. Status terakhir: **2026-10-21**.
+
+Repo web terpisah dari repo Flutter (`~/Documents/chatyuk`). Dokumen backend
+VM/ngrok ada di `chatyuk/INSTABOX.md`; dokumen ini fokus pada sisi web.
+
+---
+
+## 1. Ringkasan
+
+| Item | Nilai |
+|---|---|
+| Path repo | `~/Documents/chatyuk-web` |
+| Stack | React 19 + Vite + TypeScript + Tailwind v4 |
+| Backend | Supabase lokal di instabox (via ngrok → Caddy) |
+| URL publik | `https://defense-subtract-untrimmed.ngrok-free.dev` |
+| Env aktif | `local` (belum switch ke cloud) |
+| Served by | Caddy `:8080` (`chatyuk-web.service`) + `ngrok.service` |
+| Build di VM | `/data/workspace/chatyuk-web/dist` |
+
+Arsitektur satu origin: ngrok → Caddy `:8080` → (`/rest`, `/auth`, `/storage`,
+`/realtime`, `/functions`, `/graphql`, `/pg`) di-proxy ke Kong `127.0.0.1:54321`;
+sisanya file statis SPA. Tujuannya menghindari CORS dan agar WebSocket realtime
+ikut lewat domain yang sama.
+
+---
+
+## 2. Runtime config (tanpa rebuild)
+
+File: `public/runtime-config.js` → disalin ke `dist/runtime-config.js`.
+
+```js
+window.__CHATYUK_CONFIG__ = {
+  env: 'local',
+  supabaseUrl: 'https://defense-subtract-untrimmed.ngrok-free.dev',
+  supabaseAnonKey: 'sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH',
+  features: {
+    replyMeta: true,
+    polls: true,
+    webPush: false,
+    calls: false,
+  },
+}
+```
+
+- Ganti `supabaseUrl` + `supabaseAnonKey` untuk pindah backend **tanpa build ulang**.
+- `runtime-config.js` di-serve `Cache-Control: no-store` oleh Caddy.
+- Nilai produksi (jangan dipakai tanpa izin):
+  `https://fohcucyyejdryryoxitm.supabase.co` +
+  `sb_publishable_aFQQbXscy1mqVq5jHX7p2w_wzs2GAKg`.
+- Kunci secret (`sb_secret_...`) **tidak boleh** masuk ke SPA.
+- `authStorageKey()` membedakan sesi per env, jadi sesi local vs prod tidak bentrok.
+
+---
+
+## 3. Kredensial & kunci lokal
+
+| Item | Nilai |
+|---|---|
+| Publishable key | `sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH` |
+| Secret key (server only) | lihat `.secrets/local-keys.txt` — **jangan di-commit** |
+| Postgres | `postgresql://postgres:postgres@127.0.0.1:54322/postgres` |
+| Studio | `http://127.0.0.1:54323` (internal VM) |
+| Mailpit | `http://127.0.0.1:54324` (internal VM) |
+
+Akun uji web (dibuat manual, bukan user produksi).
+
+**Akun dummy (fixture test, wajib dipakai untuk pesan uji per `AGENTS.md`)**
+terdaftar juga di `dummy_accounts`:
+
+| UID | Nickname |
+|---|---|
+| `d0000001-0000-4000-8000-00000000000a` | DummyAlpha |
+| `d0000002-0000-4000-8000-00000000000b` | DummyBeta |
+
+Fixture chat: `d0000001-…_d0000002-…` — 3 pesan berawalan `[TEST]`.
+Bersihkan dengan menghapus baris `private_messages` ber-`text like '[TEST]%'`
+lalu perbaiki `private_chats.last_message`/`message_count`.
+
+| Email | Password |
+|---|---|
+| `raka.web@chatyuk.test` | `Rahasia123!` |
+| `sari.web@chatyuk.test` | `Rahasia123!` |
+| `zunixe@gmail.com` (Google) | — (OAuth) |
+| `dummy.alpha@chatyuk.test` | `DummyTest123!` |
+| `dummy.beta@chatyuk.test` | `DummyTest123!` |
+
+---
+
+## 4. Google Sign-In (Web OAuth)
+
+### 4.1 Client yang dipakai
+
+| Item | Nilai |
+|---|---|
+| Nama client | **ChatYuk Web Dev (ngrok)** |
+| Client ID | `599111437536-1amalukmipfm1a71e4ilj4pbucuiggdk.apps.googleusercontent.com` |
+| Client secret | lihat `.secrets/google-web-dev.txt` (tidak ditulis di dokumen ini) |
+| Project GCP | `chatyuk-7c9e4` |
+| Authorized redirect URI | `https://defense-subtract-untrimmed.ngrok-free.dev/auth/v1/callback` |
+
+Client ini **khusus dev** dan terpisah dari client produksi.
+
+> ⚠️ **Jangan reset/ubah OAuth client `ChatYuk Admin Web`
+> (`…hg56bq0nc2m6kig6hg41lmrbtfel5n2c`).** Client itu dipakai aplikasi
+> Android produksi sebagai `serverClientId`/`aud` (lihat
+> `chatyuk/CONFIG.md`). Mengubah secret-nya berisiko mengganggu Google
+> Sign-In produksi.
+
+### 4.2 Kenapa client terpisah
+
+Login mobile memakai **ID token** (secret tidak dipakai), sedangkan login web
+memakai **OAuth authorization code** yang **wajib** menukar `code` dengan
+`client_secret` asli di server. Supabase lokal sebelumnya memakai secret dummy
+(`local-dev-unused-idtoken-flow`) sehingga muncul
+`Unable to exchange external code`. Solusinya client dev khusus web.
+
+### 4.3 Konfigurasi Supabase lokal
+
+File: `/data/workspace/chatyuk/supabase/config.toml`
+
+```toml
+[auth.external.google]
+enabled = true
+client_id = "599111437536-1amalukmipfm1a71e4ilj4pbucuiggdk.apps.googleusercontent.com,599111437536-pc5vquunrmjoqvvq4hs5rpj2ec8tf26k.apps.googleusercontent.com"
+secret = "<lihat .secrets/google-web-dev.txt>"
+redirect_uri = "https://defense-subtract-untrimmed.ngrok-free.dev/auth/v1/callback"
+skip_nonce_check = false
+```
+
+Terkait di `[auth]`:
+
+```toml
+site_url = "http://127.0.0.1:3000"
+additional_redirect_urls = ["https://127.0.0.1:3000", "https://defense-subtract-untrimmed.ngrok-free.dev/**"]
+enable_anonymous_sign_ins = true
+minimum_password_length = 6
+enable_confirmations = false
+```
+
+Catatan:
+
+- `client_id` berisi **dua** ID: client dev web + Android Play Signing
+  (`…pc5vq…`). Android Play tetap diperlukan agar `aud` token mobile valid.
+  Client Android apkpure (`…r1rb2…`) tidak dimasukkan ke lokal.
+- Env yang benar-benar dipakai container:
+  `GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID`, `GOTRUE_EXTERNAL_GOOGLE_SECRET`,
+  `GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI`.
+- Secret disimpan terpisah di `.secrets/google-web-dev.txt` (chmod 600) dan
+  sudah masuk `.gitignore`. Secret juga ada di `config.toml` VM apa adanya
+  (GoTrue butuh nilai asli).
+- Env ini **hanya terbentuk saat `supabase start`**, bukan saat
+  `docker restart supabase_auth_ChatYuk`. Setelah mengubah `config.toml`,
+  wajib `supabase stop` + `supabase start`.
+
+### 4.4 Alur di aplikasi web
+
+Tombol Google memanggil:
+
+```ts
+supabase.auth.signInWithOAuth({
+  provider: 'google',
+  options: {
+    redirectTo: `${window.location.origin}/chats`,
+    queryParams: { prompt: 'select_account' },
+  },
+})
+```
+
+- `flowType: 'pkce'` + `detectSessionInUrl: true` → code ditukar otomatis.
+- Implicit fallback mengembalikan `#access_token=...` (terlihat saat uji
+  manual `/auth/v1/authorize`), ditangani Supabase JS.
+- User baru (belum punya profil) otomatis diarahkan ke `/onboarding`.
+- Sudah diuji 2026-10-21: tombol Google → account chooser
+  (`zunixe@gmail.com`) → `/onboarding` tanpa error. Akun Google tersebut
+  kini punya user ChatYuk di DB lokal (uid `1c7752ea-47f6-4cbe-a2c8-a2b59582555e`).
+
+---
+
+## 5. Routing & auth flow
+
+| Route | Isi |
+|---|---|
+| `/login` | Halaman awal ala Android: form profil (nama, gender, umur, negara, kota) → anon; tombol Google; link daftar/masuk email |
+| `/login/email` | Login email + password (+ Google) |
+| `/register` | Daftar email |
+| `/onboarding` | Lengkapi profil (wajib sebelum `/chats`) |
+| `/chats`, `/chats/:chatId` | Daftar chat + ruang chat |
+| `/new-chat` | Cari user / mulai chat |
+| `/settings` | Profil, privasi, amankan akun (anon→email), tema, logout |
+
+Aturan gate:
+
+- Ada sesi + profil lengkap → `/chats`.
+- Ada sesi + profil belum lengkap → `/onboarding`.
+- Tanpa sesi → `/login`.
+
+### 5.1 Login anonim (guest)
+
+1. User isi form di `/login` → `supabase.auth.signInAnonymously()`.
+2. Insert profil (`is_registered=false`) via `registerProfile()`.
+3. Masuk `/chats`.
+4. Upgrade di `/settings` → "Amankan akun" → `supabase.auth.updateUser({ email, password })`
+   lalu set `profiles.is_registered=true` (UID tetap, chat tidak hilang).
+
+Catatan: bila `enable_confirmations=true`, email harus dikonfirmasi dulu
+sebelum `is_registered` di-set.
+
+---
+
+## 6. Kontrak data dengan mobile
+
+Lihat juga `chatyuk/INSTABOX.md` § "Sinkronisasi web ↔ mobile".
+
+| Aspek | Kontrak |
+|---|---|
+| `chat_id` privat | dua uid di-sort lalu digabung `_` |
+| Pesan | insert ke `private_messages`; field `text` (bukan `message`/`content`) |
+| PK chat | `private_chats.chat_id` |
+| PK profil | `profiles.id`; nama tampilan `profiles.nickname` |
+| Trigger | `handle_new_private_message` mengisi `last_message`, `last_message_at`, `last_sender_id`, `message_count`, `unread_counts` |
+| Realtime | `postgres_changes` pada `private_messages`, `private_chats`, `message_reactions`, `profiles` |
+| Typing | channel broadcast `typing-<chatId>`, payload `{ sender_id, kind, ts }` |
+| Read receipt | RPC `mark_chat_read(p_chat_id, p_uid)` |
+| Hidden chat | `private_chats.hidden_by`; kirim pesan meng-unhide |
+| Tampil di list | hanya `message_count > 0` |
+| Reaksi | `message_reactions` dengan `chat_type='private'`, `message_id` string |
+| Media | bucket `chat-photos`; path `chat/`, `voice/`, `avatars/`, `stickers/` |
+
+### 6.1 Format media
+
+| Tipe | Field | Catatan |
+|---|---|---|
+| image | `image_path` (+ `image_data`) | web kirim path storage |
+| voice | `voice_path`, `duration_ms` | mobile menulis `voice/<chatId>/<stamp>.m4a` |
+| video | `image_path` (.mp4), `video_poster`, `duration_ms` | web upload ke `chat/<chatId>/*.mp4` |
+| file | `image_path` (`_f.<ext>`), `duration_ms` = ukuran byte | nama file di `text` |
+| location | `text` = JSON `{lat,lng,label,caption,accuracyM}` | web render link Google Maps |
+| poll | `poll` = `{q, o[], m}` | web hanya menampilkan (vote belum) |
+| contact | `contact` = `{t:'user',u}` atau `{t:'phone',n,p[]}` | web tampilkan nomor/user |
+| sticker | `image_path` `stickers/...` | web render gambar |
+| gift/coin/call | `text` | web tampilkan teks |
+
+---
+
+## 7. Caddy (`deploy/Caddyfile`)
+
+```caddy
+:8080 {
+	root * /data/workspace/chatyuk-web/dist
+	encode zstd gzip
+
+	@supabase path /rest/* /auth/* /storage/* /realtime/* /functions/* /graphql/* /pg/*
+	handle @supabase {
+		reverse_proxy 127.0.0.1:54321 { flush_interval -1 }
+	}
+
+	handle /runtime-config.js {
+		header Cache-Control "no-store, max-age=0"
+		file_server
+	}
+
+	handle /assets/* {
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+
+	handle {
+		header Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+}
+```
+
+- HTML `no-cache` supaya deploy baru langsung terpakai (dulu sering tertahan
+  cache browser).
+- Asset ber-hash `immutable` 1 tahun.
+- Config aktif di VM: `/data/workspace/chatyuk-web/deploy/Caddyfile`.
+  Reload: `sudo /usr/local/bin/caddy reload --config <path> --adapter caddyfile`.
+
+---
+
+## 8. Perintah harian
+
+```bash
+# dev lokal (mesin sendiri)
+cd ~/Documents/chatyuk-web && npm run dev      # http://127.0.0.1:5173
+
+# kualitas kode
+npm run lint        # oxlint
+npm test            # vitest (42 test: nickname, chats, time, regions, utils)
+npm run build       # tsc -b + vite build
+
+# deploy ke VM
+npm run build && \
+ssh -p 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+  ibssh_pkaewaqds244ilfseabkwddeeu@api.instabox.sh \
+  'rm -rf /data/workspace/chatyuk-web/dist'
+tar czf - dist | ssh -p 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+  ibssh_pkaewaqds244ilfseabkwddeeu@api.instabox.sh \
+  'tar xzf - -C /data/workspace/chatyuk-web'
+
+# status backend
+ssh ... 'cd /data/workspace/chatyuk/supabase && supabase status'
+```
+
+---
+
+## 9. Backup & pemulihan DB lokal
+
+**Wajib sebelum `supabase stop`.** Percobaan `stop --no-backup` + `start`
+pernah membuat volume `supabase_db_ChatYuk` dibuat ulang → seluruh auth user,
+chat, pesan, dan storage hilang (insiden 2026-10-20).
+
+```bash
+ssh ... 'mkdir -p /data/workspace/backups && \
+  docker exec supabase_db_ChatYuk pg_dump -U postgres -d postgres -Fc \
+  > /data/workspace/backups/$(date +%s).dump'
+
+# restore
+ssh ... 'docker exec -i supabase_db_ChatYuk pg_restore -U postgres -d postgres \
+  --clean --if-exists < /data/workspace/backups/<file>.dump'
+```
+
+Backup terakhir: `/data/workspace/backups/pre-google-dev-1792540007.dump` (1.9 MB).
+
+---
+
+## 10. Aturan test (dari `chatyuk/AGENTS.md`)
+
+- **Dilarang** memakai identitas user asli sebagai `sender_id` untuk pesan uji.
+- Test chat wajib dari **akun dummy** (`dummy_accounts.uid`) dengan awalan
+  `[TEST]`, lalu bersihkan `private_messages`, `private_chats.last_message`,
+  dan log AI.
+- Jangan menyentuh project cloud `fohcucyyejdryryoxitm` tanpa izin.
+
+---
+
+## 11. Drift / catatan lokal
+
+| Item | Status |
+|---|---|
+| `site_url` | masih `http://127.0.0.1:3000`; redirect web ditangani `additional_redirect_urls` |
+| Edge functions | secret lokal kosong → AI/payment/email/push tidak jalan |
+| Cron lokal | masih menunjuk URL cloud (lihat INSTABOX.md) |
+| Client produksi Web | **tidak** dipakai lagi di config lokal |
+| Ngrok free | interstitial sekali per browser; API pakai header `ngrok-skip-browser-warning` |
+| Lint | `oxlint`: **5 warning, 0 error**. Sisanya pola React Compiler `set-state-in-effect` di `SettingsPage` (3), `ChatPage` (1), `useChatRealtime` (1). Sengaja dibiarkan: refactor ke derive-during-render berisiko mengubah perilaku form/state chat. Warning lain (fast-refresh, impure render, unsafe optional chaining) sudah diperbaiki. |
+
+---
+
+## 12. Riwayat perubahan penting
+
+| Tanggal | Perubahan |
+|---|---|
+| 2026-10-20 | Web SPA + Caddy + ngrok; chat 1:1 realtime dua arah |
+| 2026-10-20 | Google lokal diaktifkan (client produksi + secret dummy) untuk ID token |
+| 2026-10-21 | Halaman awal ala Android (form profil + Google + email) |
+| 2026-10-21 | Login anonim, upgrade anon→email, gender/negara/kota dari mobile |
+| 2026-10-21 | Block user (enforce + UI), media tampil & kirim (file/video/voice/lokasi) |
+| 2026-10-21 | OAuth client dev `ChatYuk Web Dev (ngrok)` — Google login web berhasil |
+| 2026-10-21 | Cache header Caddy (HTML no-cache, asset immutable) |
+| 2026-10-21 | Unit test Vitest (42) mencerminkan test Android |
+| 2026-10-21 | Perbaikan `presence_for`: `invisible_admin_uid` text kosong → cast uuid gagal (POST 400 di `/rest/v1/rpc/presence_for`). Fungsi live di-replace dari `20261020150000_fix_presence_for_invisible_uid.sql` |
+| 2026-10-21 | Perbaikan `auth.users` seed: kolom token NULL → GoTrue admin API 500 `converting NULL to string` |
+| 2026-10-21 | Fixture test akun dummy (DummyAlpha/DummyBeta) + chat `[TEST]` |

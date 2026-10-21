@@ -1,0 +1,1096 @@
+import { useQueryClient } from '@tanstack/react-query'
+import {
+  ArrowLeft,
+  ChevronDown,
+  FileText,
+  ImagePlus,
+  Info,
+  Loader2,
+  MapPin,
+  MessageCircle,
+  Mic,
+  MoreVertical,
+  Paperclip,
+  SendHorizontal,
+  ShieldOff,
+  Video,
+  Smile,
+  Square,
+  X,
+} from 'lucide-react'
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type KeyboardEvent,
+} from 'react'
+import { Link, useParams } from 'react-router-dom'
+import { toast } from 'sonner'
+import { Avatar } from '@/components/ui/avatar'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Spinner, TypingDots } from '@/components/ui/feedback'
+import { MessageBubble } from '@/features/chat/MessageBubble'
+import { ProfileDrawer } from '@/features/chat/ProfileDrawer'
+import {
+  useAvatars,
+  useChat,
+  useMessages,
+  useOtherProfile,
+  useReactions,
+} from '@/hooks/useChatData'
+import { useBlockedSet, useSetBlocked } from '@/hooks/useBlocks'
+import { useChatRoomRealtime, useTyping } from '@/hooks/useChatRealtime'
+import { chatDisplayName, chatReadAt, markChatRead, otherParticipant } from '@/lib/api/chats'
+import { sendPrivateMessage, toggleReaction } from '@/lib/api/messages'
+import { errorMessage } from '@/lib/errors'
+import {
+  generateVideoPoster,
+  resolveAvatar,
+  uploadChatFile,
+  uploadChatImage,
+  uploadChatVideo,
+  uploadChatVideoPoster,
+  uploadChatVoice,
+} from '@/lib/media'
+import {
+  addOptimisticMessage,
+  failOptimisticMessage,
+  markChatReadInCache,
+  replaceOptimisticMessage,
+  touchChatCache,
+  upsertMessageInCache,
+} from '@/lib/query-cache'
+import { formatLastSeen, sameDay } from '@/lib/time'
+import { cn, messagePreview } from '@/lib/utils'
+import { useAuthStore } from '@/stores/auth'
+import type { Message } from '@/lib/types'
+
+const COMPOSER_EMOJIS = ['😀', '😂', '😊', '😍', '😎', '😢', '😡', '👍', '🙏', '❤️', '🔥', '🎉']
+
+function tempId(): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID()
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
+function senderNameOf(message: Message): string {
+  return message.sender_name?.trim() || 'Pengguna'
+}
+
+export function ChatPage() {
+  const { chatId } = useParams()
+  const queryClient = useQueryClient()
+  const authProfile = useAuthStore((state) => state.profile)
+  const myUid = authProfile?.id
+
+  const chatQuery = useChat(chatId)
+  const chat = chatQuery.data ?? null
+  const otherUid = chat && myUid ? otherParticipant(chat, myUid) : undefined
+  const otherProfileQuery = useOtherProfile(otherUid)
+  const otherProfile = otherProfileQuery.data ?? null
+  const avatarsQuery = useAvatars(otherUid ? [otherUid] : [])
+
+  const { messages, isLoading, isError, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } =
+    useMessages(chatId)
+  const reactionsQuery = useReactions(chatId)
+  const { connected } = useChatRoomRealtime(chatId, myUid)
+  const { typingUsers, sendTyping, stopTyping } = useTyping(chatId, myUid)
+  const blockedSet = useBlockedSet(myUid)
+  const setBlocked = useSetBlocked(myUid)
+  const otherBlocked = Boolean(otherUid && blockedSet.has(otherUid))
+
+  const [text, setText] = useState('')
+  const [replyTo, setReplyTo] = useState<Message | null>(null)
+  const [profileOpen, setProfileOpen] = useState(false)
+  const [viewerSrc, setViewerSrc] = useState<string | null>(null)
+  const [emojiOpen, setEmojiOpen] = useState(false)
+  const [imageBusy, setImageBusy] = useState(false)
+  const [showJump, setShowJump] = useState(false)
+  const [attachOpen, setAttachOpen] = useState(false)
+  const [mediaBusy, setMediaBusy] = useState(false)
+  const [recording, setRecording] = useState(false)
+  const [recordSecs, setRecordSecs] = useState(0)
+
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const docRef = useRef<HTMLInputElement>(null)
+  const videoRef = useRef<HTMLInputElement>(null)
+  const recorderRef = useRef<MediaRecorder | null>(null)
+  const recorderChunksRef = useRef<Blob[]>([])
+  const recordStartRef = useRef(0)
+  const recordTimerRef = useRef<number | undefined>(undefined)
+  const stickRef = useRef(true)
+  const initializedRef = useRef(false)
+  const pendingOlderRef = useRef(false)
+  const prevScrollHeightRef = useRef(0)
+  const prevCountRef = useRef(0)
+
+  const otherName =
+    otherProfile?.nickname ||
+    (chat && myUid ? chatDisplayName(chat, myUid) : 'Pengguna ChatYuk')
+  const otherAvatar = resolveAvatar(otherProfile?.avatar || avatarsQuery.data?.[otherUid ?? ''])
+  const otherLastReadAt = chat && otherUid ? chatReadAt(chat, otherUid) : null
+  const isTyping = typingUsers.length > 0
+  const otherStatus = otherProfile?.status ?? 'offline'
+
+  const statusText = isTyping
+    ? 'sedang mengetik…'
+    : otherStatus === 'online'
+      ? 'online'
+      : otherStatus === 'idle'
+        ? 'sedang tidak aktif'
+        : otherProfile?.last_seen
+          ? formatLastSeen(otherProfile.last_seen)
+          : 'offline'
+
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'auto') => {
+    const element = scrollRef.current
+    if (!element) return
+    element.scrollTo({ top: element.scrollHeight, behavior })
+    stickRef.current = true
+    setShowJump(false)
+  }, [])
+
+  useEffect(() => {
+    initializedRef.current = false
+    pendingOlderRef.current = false
+    prevCountRef.current = 0
+    stickRef.current = true
+    setText('')
+    setReplyTo(null)
+    setShowJump(false)
+    setProfileOpen(false)
+    setViewerSrc(null)
+  }, [chatId])
+
+  useEffect(() => {
+    if (!chatId || !myUid) return
+    const markRead = () => {
+      if (document.visibilityState !== 'visible') return
+      void markChatRead(chatId, myUid)
+        .then(() => {
+          markChatReadInCache(queryClient, myUid, chatId)
+          void queryClient.invalidateQueries({ queryKey: ['chats', myUid] })
+        })
+        .catch(() => undefined)
+    }
+    markRead()
+    document.addEventListener('visibilitychange', markRead)
+    window.addEventListener('focus', markRead)
+    return () => {
+      document.removeEventListener('visibilitychange', markRead)
+      window.removeEventListener('focus', markRead)
+    }
+  }, [chatId, myUid, queryClient])
+
+  useEffect(() => {
+    document.title = chat ? `${otherName} · ChatYuk` : 'ChatYuk Web'
+    return () => {
+      document.title = 'ChatYuk Web'
+    }
+  }, [chat, otherName])
+
+  useEffect(() => {
+    const element = textareaRef.current
+    if (!element) return
+    element.style.height = '0px'
+    element.style.height = `${Math.min(element.scrollHeight, 144)}px`
+  }, [text])
+
+  useEffect(() => {
+    if (isTyping && stickRef.current) scrollToBottom('smooth')
+  }, [isTyping, scrollToBottom])
+
+  useLayoutEffect(() => {
+    const element = scrollRef.current
+    if (!element || isLoading) return
+    const count = messages.length
+
+    if (!initializedRef.current) {
+      element.scrollTop = element.scrollHeight
+      initializedRef.current = true
+      prevCountRef.current = count
+      return
+    }
+
+    if (pendingOlderRef.current) {
+      const delta = element.scrollHeight - prevScrollHeightRef.current
+      element.scrollTop += Math.max(0, delta)
+      pendingOlderRef.current = false
+      prevCountRef.current = count
+      return
+    }
+
+    const grew = count > prevCountRef.current
+    const last = messages[count - 1]
+    if (stickRef.current) {
+      element.scrollTop = element.scrollHeight
+    } else if (grew && last && last.sender_id !== myUid) {
+      setShowJump(true)
+    }
+    prevCountRef.current = count
+  }, [isLoading, messages, myUid])
+
+  const handleScroll = () => {
+    const element = scrollRef.current
+    if (!element) return
+    const distance = element.scrollHeight - element.scrollTop - element.clientHeight
+    stickRef.current = distance < 150
+    if (distance < 150 && showJump) setShowJump(false)
+    if (element.scrollTop < 70 && hasNextPage && !isFetchingNextPage) {
+      prevScrollHeightRef.current = element.scrollHeight
+      pendingOlderRef.current = true
+      void fetchNextPage()
+    }
+  }
+
+  function handleTextChange(value: string) {
+    setText(value.slice(0, 2000))
+    if (value.trim()) sendTyping()
+    else stopTyping()
+  }
+
+  async function sendTextMessage() {
+    if (!chatId || !myUid || !authProfile) return
+    if (otherBlocked) {
+      toast.error('Kamu memblokir pengguna ini. Buka info kontak untuk membuka blokir.')
+      return
+    }
+    const clean = text.trim()
+    if (!clean) return
+    const temp = tempId()
+    const reply = replyTo
+    const now = new Date().toISOString()
+    const optimistic: Message = {
+      id: -Date.now(),
+      chat_id: chatId,
+      sender_id: myUid,
+      sender_name: authProfile.nickname ?? 'Pengguna',
+      sender_gender: authProfile.gender ?? '',
+      text: clean,
+      type: 'text',
+      replied_to_id: reply?.id ?? null,
+      replied_to_text: reply ? messagePreview(reply) : null,
+      replied_to_sender_name: reply ? senderNameOf(reply) : null,
+      created_at: now,
+      client_status: 'sending',
+      temp_id: temp,
+    }
+
+    stickRef.current = true
+    addOptimisticMessage(queryClient, chatId, optimistic)
+    touchChatCache(queryClient, myUid, chatId, clean, now)
+    setText('')
+    setReplyTo(null)
+    stopTyping()
+    requestAnimationFrame(() => scrollToBottom('smooth'))
+
+    try {
+      const server = await sendPrivateMessage({
+        chatId,
+        senderId: myUid,
+        senderName: authProfile.nickname ?? 'Pengguna',
+        senderGender: authProfile.gender ?? '',
+        text: clean,
+        type: 'text',
+        repliedToId: reply?.id ?? null,
+        repliedToText: reply ? messagePreview(reply) : null,
+        repliedToSenderName: reply ? senderNameOf(reply) : null,
+      })
+      replaceOptimisticMessage(queryClient, chatId, temp, server)
+      void queryClient.invalidateQueries({ queryKey: ['chats', myUid] })
+    } catch (error) {
+      failOptimisticMessage(queryClient, chatId, temp)
+      toast.error(errorMessage(error))
+    }
+  }
+
+  async function handleImageFile(event: ChangeEvent<HTMLInputElement>) {
+    if (otherBlocked) {
+      event.target.value = ''
+      toast.error('Kamu memblokir pengguna ini. Buka info kontak untuk membuka blokir.')
+      return
+    }
+    const file = event.target.files?.[0]
+    if (fileRef.current) fileRef.current.value = ''
+    if (!file || !chatId || !myUid || !authProfile || imageBusy) return
+    if (!file.type.startsWith('image/')) {
+      toast.error('Pilih berkas gambar.')
+      return
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error('Ukuran gambar maksimal 8 MB.')
+      return
+    }
+
+    const localUrl = URL.createObjectURL(file)
+    const temp = tempId()
+    const now = new Date().toISOString()
+    const caption = text.trim()
+    const reply = replyTo
+    const optimistic: Message = {
+      id: -Date.now(),
+      chat_id: chatId,
+      sender_id: myUid,
+      sender_name: authProfile.nickname ?? 'Pengguna',
+      sender_gender: authProfile.gender ?? '',
+      text: caption,
+      type: 'image',
+      image_data: localUrl,
+      image_path: localUrl,
+      replied_to_id: reply?.id ?? null,
+      replied_to_text: reply ? messagePreview(reply) : null,
+      replied_to_sender_name: reply ? senderNameOf(reply) : null,
+      created_at: now,
+      client_status: 'sending',
+      temp_id: temp,
+    }
+
+    setImageBusy(true)
+    stickRef.current = true
+    addOptimisticMessage(queryClient, chatId, optimistic)
+    touchChatCache(queryClient, myUid, chatId, caption || 'Foto', now)
+    setText('')
+    setReplyTo(null)
+    stopTyping()
+
+    try {
+      const path = await uploadChatImage(chatId, file)
+      const server = await sendPrivateMessage({
+        chatId,
+        senderId: myUid,
+        senderName: authProfile.nickname ?? 'Pengguna',
+        senderGender: authProfile.gender ?? '',
+        text: caption,
+        type: 'image',
+        imagePath: path,
+        repliedToId: reply?.id ?? null,
+        repliedToText: reply ? messagePreview(reply) : null,
+        repliedToSenderName: reply ? senderNameOf(reply) : null,
+      })
+      replaceOptimisticMessage(queryClient, chatId, temp, server)
+      URL.revokeObjectURL(localUrl)
+      void queryClient.invalidateQueries({ queryKey: ['chats', myUid] })
+    } catch (error) {
+      failOptimisticMessage(queryClient, chatId, temp)
+      toast.error(errorMessage(error))
+    } finally {
+      setImageBusy(false)
+    }
+  }
+
+
+  async function sendAttachment(payload: {
+    type: Message['type']
+    text: string
+    imagePath?: string
+    voicePath?: string
+    videoPoster?: string
+    durationMs?: number
+  }) {
+    if (!chatId || !myUid || !authProfile || otherBlocked) return
+    const reply = replyTo
+    try {
+      const server = await sendPrivateMessage({
+        chatId,
+        senderId: myUid,
+        senderName: authProfile.nickname ?? 'Pengguna',
+        senderGender: authProfile.gender ?? '',
+        text: payload.text,
+        type: payload.type,
+        imagePath: payload.imagePath,
+        voicePath: payload.voicePath,
+        videoPoster: payload.videoPoster,
+        durationMs: payload.durationMs,
+        repliedToId: reply?.id ?? null,
+        repliedToText: reply ? messagePreview(reply) : null,
+        repliedToSenderName: reply ? senderNameOf(reply) : null,
+      })
+      upsertMessageInCache(queryClient, chatId, server)
+      setReplyTo(null)
+      stickRef.current = true
+      void queryClient.invalidateQueries({ queryKey: ['chats', myUid] })
+      requestAnimationFrame(() => scrollToBottom('smooth'))
+    } catch (error) {
+      toast.error(errorMessage(error))
+    }
+  }
+
+  async function handleDocFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    if (docRef.current) docRef.current.value = ''
+    if (!file || !chatId) return
+    if (otherBlocked) {
+      toast.error('Kamu memblokir pengguna ini.')
+      return
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error('Ukuran file maksimal 50 MB.')
+      return
+    }
+    setMediaBusy(true)
+    try {
+      const path = await uploadChatFile(chatId, file)
+      await sendAttachment({ type: 'file', text: file.name, imagePath: path, durationMs: file.size })
+    } catch (error) {
+      toast.error(errorMessage(error))
+    } finally {
+      setMediaBusy(false)
+    }
+  }
+
+  function probeVideoDuration(file: File): Promise<number> {
+    return new Promise((resolve) => {
+      const video = document.createElement('video')
+      const url = URL.createObjectURL(file)
+      video.preload = 'metadata'
+      video.onloadedmetadata = () => {
+        const ms = Number.isFinite(video.duration) ? Math.round(video.duration * 1000) : 0
+        URL.revokeObjectURL(url)
+        resolve(ms)
+      }
+      video.onerror = () => {
+        URL.revokeObjectURL(url)
+        resolve(0)
+      }
+      video.src = url
+    })
+  }
+
+  async function handleVideoFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    if (videoRef.current) videoRef.current.value = ''
+    if (!file || !chatId) return
+    if (otherBlocked) {
+      toast.error('Kamu memblokir pengguna ini.')
+      return
+    }
+    if (!file.type.startsWith('video/')) {
+      toast.error('Pilih berkas video.')
+      return
+    }
+    if (file.size > 25 * 1024 * 1024) {
+      toast.error('Ukuran video maksimal 25 MB.')
+      return
+    }
+    setMediaBusy(true)
+    try {
+      const [path, durationMs, poster] = await Promise.all([
+        uploadChatVideo(chatId, file),
+        probeVideoDuration(file),
+        generateVideoPoster(file).catch(() => null),
+      ])
+      let posterPath: string | undefined
+      if (poster) posterPath = await uploadChatVideoPoster(chatId, poster)
+      await sendAttachment({
+        type: 'video',
+        text: text.trim(),
+        imagePath: path,
+        videoPoster: posterPath,
+        durationMs,
+      })
+      setText('')
+    } catch (error) {
+      toast.error(errorMessage(error))
+    } finally {
+      setMediaBusy(false)
+    }
+  }
+
+  function pickRecorderMime(): string {
+    if (typeof MediaRecorder === 'undefined') return ''
+    for (const mime of ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm']) {
+      if (MediaRecorder.isTypeSupported(mime)) return mime
+    }
+    return ''
+  }
+
+  async function toggleRecording() {
+    if (recording) {
+      recorderRef.current?.stop()
+      return
+    }
+    if (!chatId || otherBlocked) return
+    const mime = pickRecorderMime()
+    if (!navigator.mediaDevices?.getUserMedia || !mime) {
+      toast.error('Browser ini belum mendukung rekaman suara.')
+      return
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const recorder = new MediaRecorder(stream, { mimeType: mime })
+      recorderRef.current = recorder
+      recorderChunksRef.current = []
+      recordStartRef.current = Date.now()
+      setRecordSecs(0)
+      setRecording(true)
+      recordTimerRef.current = window.setInterval(() => {
+        setRecordSecs(Math.floor((Date.now() - recordStartRef.current) / 1000))
+      }, 500)
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) recorderChunksRef.current.push(event.data)
+      }
+      recorder.onstop = () => {
+        stream.getTracks().forEach((track) => track.stop())
+        if (recordTimerRef.current) window.clearInterval(recordTimerRef.current)
+        recordTimerRef.current = undefined
+        setRecording(false)
+        const durationMs = Date.now() - recordStartRef.current
+        const blob = new Blob(recorderChunksRef.current, { type: mime })
+        recorderChunksRef.current = []
+        if (!chatId || blob.size === 0 || durationMs < 600) return
+        setMediaBusy(true)
+        void uploadChatVoice(chatId, blob)
+          .then((path) =>
+            sendAttachment({ type: 'voice', text: '', voicePath: path, durationMs }),
+          )
+          .catch((error) => toast.error(errorMessage(error)))
+          .finally(() => setMediaBusy(false))
+      }
+      recorder.start(250)
+    } catch {
+      toast.error('Tidak bisa mengakses mikrofon.')
+    }
+  }
+
+  function sendLocation() {
+    if (!chatId || otherBlocked) return
+    if (!navigator.geolocation) {
+      toast.error('Perangkat tidak mendukung lokasi.')
+      return
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const payload = JSON.stringify({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          label: 'Lokasi saya',
+          caption: '',
+          accuracyM: Math.round(position.coords.accuracy),
+        })
+        void sendAttachment({ type: 'location', text: payload })
+      },
+      () => toast.error('Gagal mengambil lokasi. Izinkan akses lokasi.'),
+      { enableHighAccuracy: true, timeout: 12000 },
+    )
+  }
+
+  async function handleReact(message: Message, emoji: string) {
+    if (!chatId || !myUid) return
+    if (message.id < 0 || message.client_status) {
+      toast.info('Tunggu pesan selesai terkirim.')
+      return
+    }
+    try {
+      await toggleReaction(chatId, message.id, myUid, emoji)
+      await queryClient.invalidateQueries({ queryKey: ['reactions', chatId] })
+    } catch (error) {
+      toast.error(errorMessage(error))
+    }
+  }
+
+  async function handleRetry(message: Message) {
+    if (!chatId || !myUid) return
+    if (message.image_path?.startsWith('blob:')) {
+      toast.error('Gambar perlu dipilih ulang untuk dikirim.')
+      return
+    }
+    if (!message.temp_id) return
+    try {
+      const server = await sendPrivateMessage({
+        chatId,
+        senderId: myUid,
+        senderName: message.sender_name ?? authProfile?.nickname ?? 'Pengguna',
+        senderGender: message.sender_gender ?? '',
+        text: message.text ?? '',
+        type: message.type,
+        imagePath: message.image_path ?? undefined,
+        repliedToId: message.replied_to_id ?? null,
+        repliedToText: message.replied_to_text ?? null,
+        repliedToSenderName: message.replied_to_sender_name ?? null,
+      })
+      replaceOptimisticMessage(queryClient, chatId, message.temp_id, server)
+      toast.success('Pesan terkirim.')
+    } catch (error) {
+      toast.error(errorMessage(error))
+    }
+  }
+
+  function handleReply(message: Message) {
+    setReplyTo(message)
+    textareaRef.current?.focus()
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault()
+      void sendTextMessage()
+    }
+  }
+
+  const groupedReactions = reactionsQuery.byMessage
+  const isEmpty = !isLoading && !isError && messages.length === 0
+  const chatMissing = !chatQuery.isLoading && !chat
+
+  if (chatMissing) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-4 bg-bg px-6 text-center">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-panel text-muted">
+          <MessageCircle className="h-6 w-6" />
+        </div>
+        <div>
+          <h2 className="font-display text-[17px] font-semibold text-text">Chat tidak ditemukan</h2>
+          <p className="mt-1 max-w-xs text-[12px] leading-relaxed text-muted">
+            Percakapan ini mungkin sudah dihapus atau kamu tidak memiliki akses.
+          </p>
+        </div>
+        <Link
+          to="/chats"
+          className="rounded-xl bg-primary px-4 py-2.5 text-[13px] font-medium text-white transition hover:bg-primary-strong"
+        >
+          Kembali ke daftar chat
+        </Link>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex h-full min-h-0 flex-col bg-bg">
+      <header className="z-20 flex shrink-0 items-center gap-1 border-b border-border bg-surface/95 px-2 pb-2.5 pt-[max(0.55rem,env(safe-area-inset-top))] backdrop-blur sm:px-3 md:pt-2.5">
+        <Link
+          to="/chats"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted transition hover:bg-panel hover:text-text md:hidden"
+          aria-label="Kembali"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Link>
+
+        <button
+          type="button"
+          onClick={() => setProfileOpen(true)}
+          className="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-1 py-1 text-left transition hover:bg-panel/70"
+        >
+          <Avatar src={otherAvatar} name={otherName} size={41} online={otherStatus === 'online'} />
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[14px] font-semibold text-text">{otherName}</div>
+            <div className="mt-0.5 flex h-4 items-center gap-1 text-[10.5px] text-muted">
+              {isTyping ? (
+                <>
+                  <TypingDots className="text-primary" />
+                  <span className="text-primary">mengetik…</span>
+                </>
+              ) : (
+                <span className={cn(otherStatus === 'online' && 'text-online')}>{statusText}</span>
+              )}
+            </div>
+          </div>
+        </button>
+
+        <div className="flex shrink-0 items-center gap-0.5">
+          <button
+            type="button"
+            onClick={() => setProfileOpen(true)}
+            className="hidden h-9 w-9 items-center justify-center rounded-lg text-muted transition hover:bg-panel hover:text-text sm:flex"
+            aria-label="Info kontak"
+            title="Info kontak"
+          >
+            <Info className="h-[18px] w-[18px]" />
+          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-muted transition hover:bg-panel hover:text-text"
+                aria-label="Menu chat"
+              >
+                <MoreVertical className="h-[18px] w-[18px]" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuItem onSelect={() => setProfileOpen(true)}>
+                <Info className="h-4 w-4" />
+                Lihat profil
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link to="/chats">
+                  <ArrowLeft className="h-4 w-4" />
+                  Kembali ke daftar chat
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </header>
+
+      {!connected && chat ? (
+        <div className="flex items-center justify-center gap-1.5 bg-amber-500/10 px-3 py-1 text-[10px] font-medium text-amber-700 dark:text-amber-300">
+          <Loader2 className="h-3 w-3 animate-spin" />
+          Menyambungkan ulang realtime…
+        </div>
+      ) : null}
+
+      <div className="relative min-h-0 flex-1">
+        <div
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="chat-canvas h-full overflow-y-auto overscroll-contain thin-scrollbar"
+        >
+          <div className="mx-auto w-full max-w-4xl space-y-1 px-0 pb-4 pt-3 sm:px-3">
+            {hasNextPage ? (
+              <div className="flex justify-center py-2">
+                {isFetchingNextPage ? (
+                  <Spinner className="text-primary" />
+                ) : (
+                  <span className="text-[10px] text-muted-2">Gulir ke atas untuk pesan lama</span>
+                )}
+              </div>
+            ) : null}
+
+            {isLoading ? (
+              <div className="space-y-3 px-4 py-4 sm:px-6">
+                {[0, 1, 2, 3].map((key) => (
+                  <div
+                    key={key}
+                    className={cn('flex', key % 2 === 0 ? 'justify-start' : 'justify-end')}
+                  >
+                    <div
+                      className={cn(
+                        'h-10 animate-pulse rounded-2xl bg-surface/80',
+                        key % 2 === 0 ? 'w-48' : 'w-60',
+                      )}
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : isError ? (
+              <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
+                <p className="text-[13px] font-medium text-text">Gagal memuat pesan</p>
+                <p className="text-[11.5px] text-muted">Periksa koneksi lalu coba lagi.</p>
+                <button
+                  type="button"
+                  onClick={() => void refetch()}
+                  className="rounded-xl bg-primary px-4 py-2 text-[12px] font-medium text-white"
+                >
+                  Coba lagi
+                </button>
+              </div>
+            ) : isEmpty ? (
+              <div className="flex flex-col items-center px-6 py-16 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-surface text-primary shadow-sm">
+                  <MessageCircle className="h-6 w-6" />
+                </div>
+                <h2 className="mt-4 font-display text-[16px] font-semibold text-text">
+                  Belum ada pesan
+                </h2>
+                <p className="mt-1 max-w-[260px] text-[11.5px] leading-relaxed text-muted">
+                  Sapa {otherName} duluan. Pesan akan langsung tersimpan di chat ini.
+                </p>
+              </div>
+            ) : (
+              messages.map((message, index) => {
+                const previous = messages[index - 1]
+                const showDay = !previous || !sameDay(previous.created_at, message.created_at)
+                const isMine = message.sender_id === myUid
+                return (
+                  <Fragment key={message.temp_id ?? message.id}>
+                    {showDay ? (
+                      <div className="flex justify-center py-2.5">
+                        <span className="rounded-full bg-surface/90 px-2.5 py-1 text-[9.5px] font-medium text-muted-2 shadow-sm">
+                          {new Date(message.created_at).toLocaleDateString('id-ID', {
+                            weekday: 'long',
+                            day: 'numeric',
+                            month: 'long',
+                          })}
+                        </span>
+                      </div>
+                    ) : null}
+                    <MessageBubble
+                      message={message}
+                      isMine={isMine}
+                      myUid={myUid ?? ''}
+                      reactions={groupedReactions.get(String(message.id))}
+                      otherLastReadAt={otherLastReadAt}
+                      onReply={handleReply}
+                      onReact={(target, emoji) => void handleReact(target, emoji)}
+                      onRetry={(target) => void handleRetry(target)}
+                      onOpenImage={setViewerSrc}
+                      onMediaLoad={() => {
+                        if (stickRef.current) scrollToBottom()
+                      }}
+                    />
+                  </Fragment>
+                )
+              })
+            )}
+
+            {isTyping ? (
+              <div className="flex px-3 pt-1 sm:px-6">
+                <div className="rounded-2xl rounded-tl-md border border-border/70 bg-bubble-in px-3 py-2 shadow-sm">
+                  <TypingDots className="text-muted" />
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        {showJump ? (
+          <button
+            type="button"
+            onClick={() => scrollToBottom('smooth')}
+            className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-surface px-3.5 py-2 text-[11px] font-medium text-primary shadow-soft ring-1 ring-border transition hover:bg-panel"
+          >
+            Pesan baru
+            <ChevronDown className="h-3.5 w-3.5" />
+          </button>
+        ) : null}
+      </div>
+
+      <div className="shrink-0 border-t border-border bg-surface px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 sm:px-3">
+        {replyTo ? (
+          <div className="mx-auto mb-2 flex max-w-4xl items-start gap-2 rounded-xl border-l-[3px] border-primary bg-primary/6 px-3 py-2">
+            <div className="min-w-0 flex-1">
+              <div className="text-[10.5px] font-semibold text-primary">
+                Membalas {senderNameOf(replyTo)}
+              </div>
+              <div className="truncate text-[11px] text-muted">{messagePreview(replyTo)}</div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setReplyTo(null)}
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-2 hover:bg-panel hover:text-text"
+              aria-label="Batalkan balasan"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ) : null}
+
+        <div className="mx-auto flex max-w-4xl items-end gap-1.5">
+          <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted transition hover:bg-panel hover:text-text"
+                aria-label="Emoji"
+                title="Emoji"
+              >
+                <Smile className="h-[19px] w-[19px]" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64 p-2" side="top" align="start">
+              <div className="grid grid-cols-6 gap-1">
+                {COMPOSER_EMOJIS.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg text-lg transition hover:bg-panel"
+                    onClick={() => {
+                      setEmojiOpen(false)
+                      handleTextChange(text + emoji)
+                      textareaRef.current?.focus()
+                    }}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(event) => void handleImageFile(event)}
+          />
+          <input
+            ref={docRef}
+            type="file"
+            className="hidden"
+            onChange={(event) => void handleDocFile(event)}
+          />
+          <input
+            ref={videoRef}
+            type="file"
+            accept="video/*"
+            className="hidden"
+            onChange={(event) => void handleVideoFile(event)}
+          />
+          {otherBlocked ? (
+            <div className="flex min-w-0 flex-1 items-center gap-2 rounded-2xl border border-danger/25 bg-danger/8 px-3.5 py-2.5 text-[12px] text-danger">
+              <ShieldOff className="h-4 w-4 shrink-0" />
+              <span className="min-w-0 flex-1">Kamu memblokir pengguna ini.</span>
+              <button
+                type="button"
+                className="shrink-0 rounded-lg px-2 py-1 text-[11.5px] font-medium underline underline-offset-2"
+                disabled={setBlocked.isPending}
+                onClick={() => {
+                  if (!otherUid) return
+                  setBlocked.mutate(
+                    { otherUid, blocked: false },
+                    { onSuccess: () => toast.success('Blokir dibuka.') },
+                  )
+                }}
+              >
+                Buka blokir
+              </button>
+            </div>
+          ) : null}
+
+          {recording ? (
+            <div className="flex min-w-0 flex-1 items-center gap-2 rounded-2xl border border-danger/30 bg-danger/8 px-3 py-2.5 text-[12px] text-danger">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-danger" />
+              <span className="flex-1">Merekam… {String(Math.floor(recordSecs / 60)).padStart(2, '0')}:{String(recordSecs % 60).padStart(2, '0')}</span>
+              <button
+                type="button"
+                onClick={() => void toggleRecording()}
+                className="inline-flex items-center gap-1 rounded-lg bg-danger px-2 py-1 text-[11px] font-medium text-white"
+              >
+                <Square className="h-3 w-3" /> Kirim
+              </button>
+            </div>
+          ) : null}
+
+          <Popover open={attachOpen} onOpenChange={setAttachOpen}>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                disabled={mediaBusy || otherBlocked}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted transition hover:bg-panel hover:text-text disabled:opacity-50"
+                aria-label="Lampiran"
+                title="Lampiran"
+              >
+                {mediaBusy ? <Spinner /> : <Paperclip className="h-[19px] w-[19px]" />}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="start" side="top" className="w-56 p-1.5">
+              <button
+                type="button"
+                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] text-text transition hover:bg-panel"
+                onClick={() => {
+                  setAttachOpen(false)
+                  docRef.current?.click()
+                }}
+              >
+                <FileText className="h-4 w-4 text-primary" />
+                Dokumen
+              </button>
+              <button
+                type="button"
+                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] text-text transition hover:bg-panel"
+                onClick={() => {
+                  setAttachOpen(false)
+                  videoRef.current?.click()
+                }}
+              >
+                <Video className="h-4 w-4 text-primary" />
+                Video
+              </button>
+              <button
+                type="button"
+                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] text-text transition hover:bg-panel"
+                onClick={() => {
+                  setAttachOpen(false)
+                  sendLocation()
+                }}
+              >
+                <MapPin className="h-4 w-4 text-primary" />
+                Lokasi
+              </button>
+              <button
+                type="button"
+                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] text-text transition hover:bg-panel"
+                onClick={() => {
+                  setAttachOpen(false)
+                  void toggleRecording()
+                }}
+              >
+                <Mic className="h-4 w-4 text-primary" />
+                Rekam suara
+              </button>
+            </PopoverContent>
+          </Popover>
+
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={imageBusy || otherBlocked}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted transition hover:bg-panel hover:text-text disabled:opacity-50"
+            aria-label="Kirim gambar"
+            title="Kirim gambar"
+          >
+            {imageBusy ? <Spinner /> : <ImagePlus className="h-[19px] w-[19px]" />}
+          </button>
+
+          <div className="min-w-0 flex-1">
+            <textarea
+              ref={textareaRef}
+              value={text}
+              rows={1}
+              maxLength={2000}
+              disabled={otherBlocked}
+              onChange={(event) => handleTextChange(event.target.value)}
+              onKeyDown={handleKeyDown}
+              onBlur={stopTyping}
+              placeholder="Tulis pesan…"
+              className="max-h-36 min-h-10 w-full resize-none rounded-2xl border border-transparent bg-panel px-3.5 py-2.5 text-[13.5px] leading-relaxed text-text outline-none transition placeholder:text-muted-2 focus:border-primary/30 focus:bg-surface focus:ring-2 focus:ring-primary/10"
+              aria-label="Tulis pesan"
+            />
+            {text.length > 1800 ? (
+              <div className="mt-0.5 text-right text-[9.5px] text-muted-2">{text.length}/2000</div>
+            ) : null}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => void sendTextMessage()}
+            disabled={!text.trim() || otherBlocked}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-white shadow-[0_8px_20px_-10px_rgb(33_150_243/0.9)] transition hover:bg-primary-strong disabled:bg-panel-2 disabled:text-muted-2 disabled:shadow-none"
+            aria-label="Kirim pesan"
+            title="Kirim"
+          >
+            <SendHorizontal className="h-[19px] w-[19px]" />
+          </button>
+        </div>
+
+        <p className="mx-auto mt-1 hidden max-w-4xl px-2 text-[9px] text-muted-2 sm:block">
+          Enter untuk kirim · Shift + Enter untuk baris baru
+        </p>
+      </div>
+
+      <ProfileDrawer
+        open={profileOpen}
+        onOpenChange={setProfileOpen}
+        uid={otherUid}
+        fallbackName={otherName}
+      />
+
+      <Dialog
+        open={Boolean(viewerSrc)}
+        onOpenChange={(open) => {
+          if (!open) setViewerSrc(null)
+        }}
+      >
+        {viewerSrc ? (
+          <DialogContent title="Foto" className="max-w-3xl p-2 pt-9">
+            <img src={viewerSrc} alt="Foto pesan" className="max-h-[76vh] w-full rounded-xl object-contain" />
+          </DialogContent>
+        ) : null}
+      </Dialog>
+    </div>
+  )
+}

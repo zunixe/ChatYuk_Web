@@ -1,0 +1,189 @@
+import { AlertCircle, ArrowRight, Mail, UserRound } from 'lucide-react'
+import { useState, type FormEvent } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
+import { AuthLayout } from '@/features/auth/AuthLayout'
+import { GoogleButton } from '@/features/auth/GoogleButton'
+import { RegionFields } from '@/features/auth/RegionFields'
+import { Button } from '@/components/ui/button'
+import { buttonVariants } from '@/components/ui/button-variants'
+import { Input, Label } from '@/components/ui/input'
+import { Spinner } from '@/components/ui/feedback'
+import { registerProfile } from '@/lib/api/profiles'
+import { errorMessage } from '@/lib/errors'
+import { isBannedNickname, isValidNickname } from '@/lib/nickname'
+import { getCities } from '@/lib/regions'
+import { supabase } from '@/lib/supabase'
+import { cn } from '@/lib/utils'
+import { useAuthStore } from '@/stores/auth'
+
+const GENDERS = [
+  { value: 'female', label: 'Perempuan' },
+  { value: 'male', label: 'Laki-laki' },
+] as const
+
+export function WelcomePage() {
+  const navigate = useNavigate()
+  const refreshProfile = useAuthStore((state) => state.refreshProfile)
+
+  const [nickname, setNickname] = useState('')
+  const [gender, setGender] = useState<string>('male')
+  const [age, setAge] = useState('18')
+  const [country, setCountry] = useState('Indonesia')
+  const [city, setCity] = useState(() => getCities('Indonesia')[0] ?? '')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleStart(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setError(null)
+
+    const cleanNickname = nickname.trim().replace(/\s+/g, ' ')
+    const numericAge = Number.parseInt(age, 10)
+
+    if (!isValidNickname(cleanNickname)) {
+      setError('Nama panggilan 3–20 karakter, hanya huruf, angka, spasi, _ atau -.')
+      return
+    }
+    if (isBannedNickname(cleanNickname)) {
+      setError('Nama panggilan itu tidak diperbolehkan.')
+      return
+    }
+    if (!Number.isFinite(numericAge) || numericAge < 13 || numericAge > 99) {
+      setError('Umur harus antara 13 dan 99 tahun.')
+      return
+    }
+    if (!country.trim()) {
+      setError('Negara wajib diisi.')
+      return
+    }
+    if (!city.trim()) {
+      setError('Kota wajib diisi.')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const { error: anonError } = await supabase.auth.signInAnonymously({
+        options: { data: { signup_source: 'chatyuk-web-entry' } },
+      })
+      if (anonError) throw anonError
+
+      await registerProfile({
+        nickname: cleanNickname,
+        gender,
+        age: numericAge,
+        country: country.trim(),
+        city: city.trim(),
+      })
+      await refreshProfile()
+      toast.success('Selamat datang di ChatYuk!')
+      navigate('/chats', { replace: true })
+    } catch (submitError) {
+      setError(errorMessage(submitError))
+      setLoading(false)
+    }
+  }
+
+  return (
+    <AuthLayout
+      title="Mulai ChatYuk"
+      subtitle="Isi profil singkat untuk langsung ngobrol sebagai tamu — atau masuk dengan Google/email."
+    >
+      <form onSubmit={handleStart} className="space-y-4">
+        {error ? (
+          <div className="flex items-start gap-2.5 rounded-xl border border-danger/20 bg-danger/8 px-3.5 py-3 text-[13px] text-danger">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{error}</span>
+          </div>
+        ) : null}
+
+        <div>
+          <Label htmlFor="welcome-nickname">Nama panggilan</Label>
+          <div className="relative">
+            <UserRound className="pointer-events-none absolute left-3.5 top-1/2 h-[17px] w-[17px] -translate-y-1/2 text-muted-2" />
+            <Input
+              id="welcome-nickname"
+              className="pl-10"
+              placeholder="Contoh: Raka"
+              maxLength={20}
+              value={nickname}
+              onChange={(event) => setNickname(event.target.value)}
+              disabled={loading}
+              autoFocus
+            />
+          </div>
+        </div>
+
+        <div>
+          <Label>Jenis kelamin</Label>
+          <div className="grid grid-cols-2 gap-2">
+            {GENDERS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setGender(option.value)}
+                disabled={loading}
+                className={cn(
+                  'h-11 rounded-xl border text-[13px] font-medium transition',
+                  gender === option.value
+                    ? 'border-primary bg-primary-soft text-primary'
+                    : 'border-border bg-surface text-muted hover:bg-panel',
+                )}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <RegionFields
+          age={age}
+          country={country}
+          city={city}
+          onAgeChange={setAge}
+          onCountryChange={(value) => {
+            setCountry(value)
+            setCity(getCities(value)[0] ?? '')
+          }}
+          onCityChange={setCity}
+          disabled={loading}
+        />
+
+        <Button type="submit" size="lg" className="w-full" disabled={loading}>
+          {loading ? <Spinner /> : null}
+          {loading ? 'Menyiapkan…' : 'Mulai Chat'}
+          {!loading ? <ArrowRight className="h-4 w-4" /> : null}
+        </Button>
+
+        <p className="text-center text-[11px] leading-relaxed text-muted-2">
+          Akun tamu dibuat otomatis. Tambahkan email nanti di Pengaturan agar akun bisa dipulihkan.
+        </p>
+      </form>
+
+      <div className="my-5 flex items-center gap-3">
+        <span className="h-px flex-1 bg-border" />
+        <span className="text-[11px] font-medium uppercase tracking-wider text-muted-2">atau</span>
+        <span className="h-px flex-1 bg-border" />
+      </div>
+
+      <div className="space-y-2.5">
+        <GoogleButton disabled={loading} />
+        <Link
+          to="/register"
+          className={cn(buttonVariants({ variant: 'secondary', size: 'lg' }), 'w-full')}
+        >
+          <Mail className="h-4 w-4" />
+          Daftar dengan email
+        </Link>
+      </div>
+
+      <p className="mt-6 text-center text-sm text-muted">
+        Sudah punya akun?{' '}
+        <Link to="/login/email" className="font-medium text-primary hover:text-primary-strong">
+          Masuk di sini
+        </Link>
+      </p>
+    </AuthLayout>
+  )
+}

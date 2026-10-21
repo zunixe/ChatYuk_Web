@@ -36,7 +36,7 @@ import { needsPeople, replaceExclusions, type PrivacyVisibility } from '@/lib/ap
 import type { PrivacyKey } from '@/lib/api/profiles'
 import { PrivacyPeoplePicker } from '@/features/settings/PrivacyPeoplePicker'
 import { usePrivacyCandidates } from '@/hooks/usePrivacyCandidates'
-import { markProfileRegistered, updateAccountCredentials } from '@/lib/api/auth'
+import { changePassword, deleteMyAccount, markProfileRegistered, updateAccountCredentials } from '@/lib/api/auth'
 import { MAX_AVATAR_BYTES } from '@/lib/constants'
 import { config, envLabel, supabaseHost } from '@/lib/runtime-config'
 import { cn } from '@/lib/utils'
@@ -99,6 +99,15 @@ export function SettingsPage() {
   // Nilai visibilitas yang menunggu daftar orang (mis. 'only' / '*_except').
   const [pendingVisibility, setPendingVisibility] = useState<Record<string, string>>({})
   const [savingPeople, setSavingPeople] = useState(false)
+  const [pwOpen, setPwOpen] = useState(false)
+  const [curPw, setCurPw] = useState('')
+  const [newPw, setNewPw] = useState('')
+  const [confirmPw, setConfirmPw] = useState('')
+  const [pwError, setPwError] = useState<string | null>(null)
+  const [pwSaving, setPwSaving] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState('')
+  const [deleting, setDeleting] = useState(false)
   const [secureEmail, setSecureEmail] = useState('')
   const [securePassword, setSecurePassword] = useState('')
   const [securing, setSecuring] = useState(false)
@@ -310,6 +319,55 @@ export function SettingsPage() {
       toast.error(errorMessage(error))
     } finally {
       setSavingPrivacy(null)
+    }
+  }
+
+  async function handleChangePassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setPwError(null)
+    const email = user?.email ?? ''
+    if (!email) {
+      setPwError('Akun ini tidak punya password (login Google).')
+      return
+    }
+    if (newPw.length < 6) {
+      setPwError('Password baru minimal 6 karakter.')
+      return
+    }
+    if (newPw !== confirmPw) {
+      setPwError('Konfirmasi password belum sama.')
+      return
+    }
+    setPwSaving(true)
+    try {
+      await changePassword(email, curPw, newPw)
+      setCurPw('')
+      setNewPw('')
+      setConfirmPw('')
+      setPwOpen(false)
+      toast.success('Password diperbarui.')
+    } catch (error) {
+      const msg = errorMessage(error)
+      setPwError(
+        msg.includes('password salah') || msg.includes('kredensial')
+          ? 'Password saat ini salah.'
+          : msg,
+      )
+    } finally {
+      setPwSaving(false)
+    }
+  }
+
+  async function handleDeleteAccount() {
+    if (deleteConfirm.trim().toUpperCase() !== 'HAPUS') return
+    setDeleting(true)
+    try {
+      await deleteMyAccount()
+      await signOut()
+      navigate('/login', { replace: true })
+    } catch (error) {
+      toast.error(errorMessage(error))
+      setDeleting(false)
     }
   }
 
@@ -724,6 +782,145 @@ export function SettingsPage() {
                   {key}
                 </span>
               ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Akun & keamanan — setara layar Account Android */}
+        <section className="mt-4 overflow-hidden rounded-3xl border border-border bg-surface shadow-sm">
+          <div className="flex items-center gap-3 border-b border-border/70 px-5 py-4">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-soft text-primary">
+              <Shield className="h-[18px] w-[18px]" />
+            </div>
+            <div>
+              <h2 className="text-[14px] font-semibold text-text">Akun & keamanan</h2>
+              <p className="text-[11px] text-muted">Password dan penghapusan akun.</p>
+            </div>
+          </div>
+
+          <div className="p-5">
+            {!user?.email ? (
+              <p className="text-[11.5px] leading-relaxed text-muted">
+                Akun ini masuk lewat Google, jadi tidak punya password.
+              </p>
+            ) : pwOpen ? (
+              <form onSubmit={handleChangePassword} className="space-y-3">
+                {pwError ? (
+                  <div className="rounded-xl border border-danger/20 bg-danger/8 px-3.5 py-2.5 text-[12.5px] text-danger">
+                    {pwError}
+                  </div>
+                ) : null}
+                <div>
+                  <Label htmlFor="cur-pw">Password saat ini</Label>
+                  <Input
+                    id="cur-pw"
+                    type="password"
+                    autoComplete="current-password"
+                    value={curPw}
+                    onChange={(event) => setCurPw(event.target.value)}
+                    disabled={pwSaving}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="new-pw">Password baru</Label>
+                  <Input
+                    id="new-pw"
+                    type="password"
+                    autoComplete="new-password"
+                    placeholder="Minimal 6 karakter"
+                    value={newPw}
+                    onChange={(event) => setNewPw(event.target.value)}
+                    disabled={pwSaving}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="confirm-pw">Ulangi password baru</Label>
+                  <Input
+                    id="confirm-pw"
+                    type="password"
+                    autoComplete="new-password"
+                    value={confirmPw}
+                    onChange={(event) => setConfirmPw(event.target.value)}
+                    disabled={pwSaving}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button type="submit" size="sm" disabled={pwSaving}>
+                    {pwSaving ? <Spinner /> : <Check className="h-4 w-4" />}
+                    {pwSaving ? 'Menyimpan…' : 'Simpan password'}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      setPwOpen(false)
+                      setPwError(null)
+                      setCurPw('')
+                      setNewPw('')
+                      setConfirmPw('')
+                    }}
+                  >
+                    Batal
+                  </Button>
+                </div>
+              </form>
+            ) : (
+              <Button size="sm" variant="secondary" onClick={() => setPwOpen(true)}>
+                <KeyRound className="h-4 w-4" />
+                Ganti password
+              </Button>
+            )}
+
+            <div className="mt-4 border-t border-border/60 pt-4">
+              {deleteOpen ? (
+                <div className="space-y-3">
+                  <p className="text-[11.5px] leading-relaxed text-danger">
+                    Akun, profil, pesan, dan media akan dihapus permanen dan tidak bisa
+                    dipulihkan.
+                  </p>
+                  <div>
+                    <Label htmlFor="delete-confirm">Ketik HAPUS untuk melanjutkan</Label>
+                    <Input
+                      id="delete-confirm"
+                      value={deleteConfirm}
+                      onChange={(event) => setDeleteConfirm(event.target.value)}
+                      placeholder="HAPUS"
+                      disabled={deleting}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      disabled={deleting || deleteConfirm.trim().toUpperCase() !== 'HAPUS'}
+                      onClick={() => void handleDeleteAccount()}
+                    >
+                      {deleting ? <Spinner /> : null}
+                      {deleting ? 'Menghapus…' : 'Hapus akun permanen'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => {
+                        setDeleteOpen(false)
+                        setDeleteConfirm('')
+                      }}
+                      disabled={deleting}
+                    >
+                      Batal
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setDeleteOpen(true)}
+                  className="text-[11.5px] font-medium text-danger underline-offset-2 hover:underline"
+                >
+                  Hapus akun saya
+                </button>
+              )}
             </div>
           </div>
         </section>

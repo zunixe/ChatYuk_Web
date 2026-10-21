@@ -66,3 +66,31 @@ export async function markProfileRegistered(uid: string, email: string): Promise
     .eq('id', uid)
   if (error) throw error
 }
+
+/**
+ * Ganti password akun email. Verifikasi password lama dulu (sama seperti
+ * mobile: signInWithPassword lalu updateUser) agar sesi tidak bisa
+ * dibajak untuk mengganti password tanpa tahu yang lama.
+ */
+export async function changePassword(
+  email: string,
+  currentPassword: string,
+  newPassword: string,
+): Promise<void> {
+  const { error: verifyError } = await supabase.auth.signInWithPassword({
+    email,
+    password: currentPassword,
+  })
+  if (verifyError) throw verifyError
+  const { error } = await supabase.auth.updateUser({ password: newPassword })
+  if (error) throw error
+}
+
+/**
+ * Hapus akun sendiri (RPC server-side `delete_my_account`): arsip ke
+ * `deleted_users` lalu purge profil + auth user. Sama dengan mobile.
+ */
+export async function deleteMyAccount(): Promise<void> {
+  const { error } = await supabase.rpc('delete_my_account')
+  if (error) throw error
+}

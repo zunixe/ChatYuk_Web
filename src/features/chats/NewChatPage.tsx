@@ -4,6 +4,8 @@ import { useDeferredValue, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Avatar } from '@/components/ui/avatar'
+import { CountryMultiSelect } from '@/features/chats/CountryMultiSelect'
+import { GenderDropdown, type GenderFilter } from '@/features/chats/GenderDropdown'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/feedback'
 import { useAvatars, useOnlineUsers, usePresenceFor, useUserSearch } from '@/hooks/useChatData'
@@ -16,7 +18,6 @@ import { useAuthStore } from '@/stores/auth'
 import type { OnlineUser } from '@/lib/types'
 
 type Tab = 'online' | 'search'
-type Scope = 'mine' | 'all'
 
 function UserRow({
   user,
@@ -96,15 +97,16 @@ export function NewChatPage() {
   const queryClient = useQueryClient()
   const profile = useAuthStore((state) => state.profile)
   const [tab, setTab] = useState<Tab>('online')
-  const [scope, setScope] = useState<Scope>('mine')
+  // Filter negara = MULTI-select (mobile: `_negaraSel`), kosong = semua.
+  const [countries, setCountries] = useState<string[]>([])
   const [term, setTerm] = useState('')
   // Filter gender — sama seperti mobile: all | male | female (single-select).
-  const [gender, setGender] = useState<'all' | 'male' | 'female'>('all')
+  const [gender, setGender] = useState<GenderFilter>('all')
   const [startingUid, setStartingUid] = useState<string | null>(null)
   const deferredTerm = useDeferredValue(term)
 
   const myUid = profile?.id
-  const onlineQuery = useOnlineUsers(scope === 'mine' ? profile?.country : null)
+  const onlineQuery = useOnlineUsers(null)
   const searchQuery = useUserSearch(deferredTerm, myUid)
 
   const blockedSet = useBlockedSet(myUid)
@@ -114,10 +116,12 @@ export function NewChatPage() {
       if (user.id === myUid) return false
       if (user.is_registered === false) return false
       if (blockedSet.has(user.id)) return false
+      // Sama seperti mobile: cocok bila country ada di daftar pilihan.
+      if (countries.length > 0 && !countries.includes(String(user.country ?? ''))) return false
       if (gender !== 'all' && user.gender !== gender) return false
       return true
     })
-  }, [myUid, onlineQuery.data, searchQuery.data, tab, blockedSet, gender])
+  }, [myUid, onlineQuery.data, searchQuery.data, tab, blockedSet, gender, countries])
 
   const uids = useMemo(() => users.map((user) => user.id), [users])
   const avatarsQuery = useAvatars(uids)
@@ -226,49 +230,16 @@ export function NewChatPage() {
           </button>
         </div>
 
-        {tab === 'online' ? (
-          <div className="mt-3 flex items-center gap-1.5">
-            {(['mine', 'all'] as const).map((value) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setScope(value)}
-                className={cn(
-                  'rounded-full px-2.5 py-1 text-[10.5px] font-medium transition',
-                  scope === value
-                    ? 'bg-panel-2 text-text'
-                    : 'text-muted-2 hover:bg-panel hover:text-text',
-                )}
-              >
-                {value === 'mine'
-                  ? `Sekitar ${profile?.country || 'saya'}`
-                  : 'Semua negara'}
-              </button>
-            ))}
+        {/* Filter berdampingan — sama persis dengan layar Online Android:
+            Negara (multi-select 141, checklist + cari + Reset/Terapkan)
+            dan Gender (single-select 3 opsi). */}
+        <div className="mt-3 flex items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <CountryMultiSelect selected={countries} onApply={setCountries} />
           </div>
-        ) : null}
-
-        {/* Filter gender — sama seperti mobile: Semua / Laki-laki / Perempuan */}
-        <div className="mt-2 flex items-center gap-1.5">
-          {([
-            ['all', 'Semua'],
-            ['male', 'Laki-laki'],
-            ['female', 'Perempuan'],
-          ] as const).map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => setGender(value)}
-              className={cn(
-                'rounded-full px-2.5 py-1 text-[10.5px] font-medium transition',
-                gender === value
-                  ? 'bg-panel-2 text-text'
-                  : 'text-muted-2 hover:bg-panel hover:text-text',
-              )}
-            >
-              {label}
-            </button>
-          ))}
+          <div className="min-w-0 flex-1">
+            <GenderDropdown value={gender} onChange={setGender} />
+          </div>
         </div>
 
         <div className="mt-4 rounded-3xl border border-border bg-surface p-1.5 shadow-sm sm:p-2">

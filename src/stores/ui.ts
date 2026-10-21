@@ -4,9 +4,15 @@ export type ThemeMode = 'light' | 'dark' | 'system'
 
 const THEME_KEY = 'chatyuk-theme'
 
+/**
+ * Default tema web = TERANG (sama seperti aplikasi Android).
+ * Pilihan pengguna (light/dark/system) tetap dihormati bila sudah tersimpan.
+ */
+const DEFAULT_THEME: ThemeMode = 'light'
+
 function storedTheme(): ThemeMode {
   const value = localStorage.getItem(THEME_KEY)
-  return value === 'light' || value === 'dark' || value === 'system' ? value : 'system'
+  return value === 'light' || value === 'dark' || value === 'system' ? value : DEFAULT_THEME
 }
 
 function systemPrefersDark(): boolean {

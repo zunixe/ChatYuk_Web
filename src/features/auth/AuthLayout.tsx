@@ -89,13 +89,16 @@ export function AuthLayout({
 
         <div className="flex flex-1 items-center justify-center px-5 pb-10 pt-2 sm:px-8">
           <div className={cn('w-full', wide ? 'max-w-[520px]' : 'max-w-[400px]')}>
-            <div className="mb-7">
-              {/* Logo animasi — sama dengan header aplikasi Android */}
-              <div className="mb-4 flex justify-center lg:justify-start">
+            {/* Header auth — susunan Android (auth_header.dart): logo,
+                tagline, dan sub-tagline SEMUANYA rata tengah. */}
+            <div className="mb-7 text-center">
+              <div className="mb-3 flex justify-center">
                 <AnimatedLogo size={56} />
               </div>
-              <h2 className="font-display text-[26px] font-semibold tracking-tight text-text">{title}</h2>
-              <p className="mt-1.5 text-sm leading-relaxed text-muted">{subtitle}</p>
+              <h2 className="font-display text-[26px] font-semibold tracking-tight text-text">
+                {title}
+              </h2>
+              <p className="mt-1 text-[12px] leading-relaxed text-muted">{subtitle}</p>
             </div>
             {children}
           </div>

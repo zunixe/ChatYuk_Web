@@ -68,7 +68,7 @@ export function usePresenceHeartbeat(
       document.removeEventListener('visibilitychange', onVisibility)
       void updatePresence(uid, 'offline').catch(() => undefined)
     }
-  }, [uid])
+  }, [uid, invisible])
 }
 
 export function useOnlineStatus(): boolean {

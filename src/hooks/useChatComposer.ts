@@ -57,7 +57,9 @@ export function useChatComposer({
     element.style.height = `${Math.max(40, Math.min(element.scrollHeight, 96))}px`
   }, [text])
 
-  // Reset saat ganti chat.
+  // Reset saat ganti chat. Sengaja memakai effect: state harus benar-benar
+  // kosong SEBELUM interaksi pertama di chat baru (draft tidak boleh bocor).
+  // Lint menandai ini sebagai saran optimasi, bukan bug.
   useEffect(() => {
     setText('')
     setReplyTo(null)

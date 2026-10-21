@@ -426,7 +426,7 @@ Backup terakhir: `/data/workspace/backups/pre-google-dev-1792540007.dump` (1.9 M
 | Cron lokal | masih menunjuk URL cloud (lihat INSTABOX.md) |
 | Client produksi Web | **tidak** dipakai lagi di config lokal |
 | Ngrok free | interstitial sekali per browser; API pakai header `ngrok-skip-browser-warning` |
-| Lint | `oxlint`: **5 warning, 0 error**. Sisanya pola React Compiler `set-state-in-effect` di `SettingsPage` (3), `ChatPage` (1), `useChatRealtime` (1). Sengaja dibiarkan: refactor ke derive-during-render berisiko mengubah perilaku form/state chat. Warning lain (fast-refresh, impure render, unsafe optional chaining) sudah diperbaiki. |
+| Lint | `oxlint`: **9 warning, 0 error**. Sisanya pola React Compiler `set-state-in-effect` di `SettingsPage` (4), `useOutboxFlush` (1), `useChatComposer` (1), `useChatScroll` (1), `useChatRealtime` (1), `ViewOnceCard` (1). Sengaja dibiarkan: semuanya reset/sinkronisasi state yang memang harus terjadi setelah render (draft chat, privacy form, antrean outbox); memaksakan pola lain berisiko mengubah perilaku. Warning lain (fast-refresh, impure render, unsafe optional chaining) sudah diperbaiki. |
 
 ---
 

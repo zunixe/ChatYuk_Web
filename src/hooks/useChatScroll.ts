@@ -42,7 +42,7 @@ export function useChatScroll({
     setShowJump(false)
   }, [])
 
-  // Reset saat pindah chat.
+  // Reset saat pindah chat (refs + satu state).
   useEffect(() => {
     initializedRef.current = false
     pendingOlderRef.current = false

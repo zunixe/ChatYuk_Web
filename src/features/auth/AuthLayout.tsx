@@ -15,7 +15,7 @@ const SUPABASE_HOST = (() => {
 
 const FEATURES = [
   { icon: Zap, title: 'Realtime tanpa jeda', text: 'Pesan, typing, dan tanda dibaca langsung tersinkron.' },
-  { icon: MessageCircleMore, title: 'Nyaman di semua layar', text: 'Layout ala WhatsApp Web, dari HP sampai desktop.' },
+  { icon: MessageCircleMore, title: 'Nyaman di semua layar', text: 'Tata letak dua panel yang rapi, dari HP sampai desktop.' },
   { icon: ShieldCheck, title: 'Privasi terkendali', text: 'Atur siapa yang bisa melihat status dan foto profil.' },
 ]
 
@@ -47,7 +47,7 @@ export function AuthLayout({
 
         <div className="relative max-w-md">
           <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-white/70">
-            <Sparkles className="h-3.5 w-3.5" /> WhatsApp-style, ChatYuk soul
+            <Sparkles className="h-3.5 w-3.5" /> Ringan, cepat, dan dekat
           </p>
           <h1 className="font-display text-[34px] font-semibold leading-[1.12] tracking-tight">
             Ngobrol lancar,

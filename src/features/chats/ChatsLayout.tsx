@@ -1,11 +1,14 @@
 import { MessageSquareText, ShieldCheck, Sparkles } from 'lucide-react'
 import { Link, Outlet, useParams } from 'react-router-dom'
 import { LogoMark } from '@/components/brand/Logo'
+import { GooglePlayIcon, openPlayStore } from '@/components/brand/PlayStoreBadge'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { ChatsPage } from '@/features/chats/ChatsPage'
 
 export function ChatsEmptyState() {
+  const { t } = useTranslation()
   return (
     <div className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden bg-bg px-8 text-center">
       <div className="pointer-events-none absolute -left-16 top-10 h-64 w-64 rounded-full bg-primary/8 blur-[90px]" />
@@ -19,24 +22,45 @@ export function ChatsEmptyState() {
       </div>
 
       <h2 className="mt-6 font-display text-[22px] font-semibold tracking-tight text-text">
-        Selamat datang di ChatYuk Web
+        {t('chats.emptyTitle')}
       </h2>
       <p className="mt-2 max-w-sm text-[13px] leading-relaxed text-muted">
-        Pilih obrolan di samping untuk melanjutkan, atau mulai percakapan baru dengan temanmu.
+        {t('chats.emptyHint')}
       </p>
 
       <div className="mt-6 flex flex-col items-center gap-2 sm:flex-row">
         <Link to="/new-chat">
           <Button>
             <MessageSquareText className="h-4 w-4" />
-            Mulai chat baru
+            {t('chats.startNew')}
           </Button>
         </Link>
         <div className="flex items-center gap-1.5 text-[11px] text-muted-2">
           <ShieldCheck className="h-3.5 w-3.5" />
-          Terhubung aman ke ChatYuk
+          {t('chats.secure')}
         </div>
       </div>
+
+      {/* Unduh aplikasi Android — badge resmi di halaman utama */}
+      <a
+        href="https://play.google.com/store/apps/details?id=com.chatyuk.chatyuk&referrer=utm_source%3Dchatyuk-web%26utm_medium%3Dhome"
+        target="_blank"
+        rel="noreferrer noopener"
+        onClick={(event) => {
+          event.preventDefault()
+          openPlayStore()
+        }}
+        className="group mt-8 inline-flex items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-2.5 shadow-[0_10px_30px_-22px_rgb(15_23_42/0.6)] transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-[0_16px_34px_-22px_rgb(33_150_243/0.65)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+        aria-label={t('play.aria')}
+      >
+        <GooglePlayIcon className="h-6 w-6" />
+        <span className="text-left leading-tight">
+          <span className="block text-[9px] font-medium uppercase tracking-[0.08em] text-muted-2">
+            {t('play.getItOn')}
+          </span>
+          <span className="block text-[13px] font-semibold text-text">{t('play.googlePlay')}</span>
+        </span>
+      </a>
 
       <div className="mt-10 grid max-w-md grid-cols-3 gap-3 text-left">
         {[

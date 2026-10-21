@@ -21,9 +21,10 @@ describe('ALL_COUNTRIES (filter Online)', () => {
     expect(new Set(ALL_COUNTRIES).size).toBe(ALL_COUNTRIES.length)
   })
 
-  it('teks field saat >1 negara sama seperti mobile("N negara")', () => {
-    expect(countriesCountText(2)).toBe('2 negara')
-    expect(countriesCountText(7)).toBe('7 negara')
+  it('teks field saat >1 negara mengikuti bahasa (EN default)', () => {
+    expect(countriesCountText(2)).toBe('2 countries')
+    expect(countriesCountText(7, 'en')).toBe('7 countries')
+    expect(countriesCountText(2, 'id')).toBe('2 negara')
   })
 })
 

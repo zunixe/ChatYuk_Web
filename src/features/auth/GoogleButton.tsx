@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/feedback'
@@ -29,6 +30,7 @@ function GoogleIcon() {
 }
 
 export function GoogleButton({ disabled }: { disabled?: boolean }) {
+  const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
 
   async function handleGoogle() {
@@ -54,7 +56,7 @@ export function GoogleButton({ disabled }: { disabled?: boolean }) {
       disabled={loading || disabled}
     >
       {loading ? <Spinner /> : <GoogleIcon />}
-      {loading ? 'Mengalihkan…' : 'Lanjutkan dengan Google'}
+      {loading ? t('common.loading') : t('auth.continueGoogle')}
     </Button>
   )
 }

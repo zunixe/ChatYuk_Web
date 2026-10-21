@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, MessageCirclePlus, Search, Settings, Sparkles, X } from 'lucide-react'
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Avatar } from '@/components/ui/avatar'
@@ -91,6 +92,7 @@ function UserRow({
 }
 
 export function NewChatPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const profile = useAuthStore((state) => state.profile)
@@ -162,15 +164,15 @@ export function NewChatPage() {
           <Link
             to="/chats"
             className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted transition hover:bg-panel hover:text-text md:hidden"
-            aria-label="Kembali"
+            aria-label={t('common.close')}
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div className="min-w-0 flex-1">
             <h1 className="font-display text-[24px] font-semibold tracking-tight text-text">
-              Pengguna Online
+              {t('online.title')}
             </h1>
-            <p className="mt-0.5 text-[12px] text-muted">Ngobrol, Cerita, Ketawa</p>
+            <p className="mt-0.5 text-[12px] text-muted">{t('auth.tagline')}</p>
           </div>
           <button
             type="button"
@@ -179,16 +181,16 @@ export function NewChatPage() {
               if (searchOpen) setTerm('')
             }}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted transition hover:bg-panel hover:text-text"
-            aria-label={searchOpen ? 'Tutup pencarian' : 'Cari nama pengguna'}
-            title={searchOpen ? 'Tutup pencarian' : 'Cari'}
+            aria-label={searchOpen ? t('common.close') : t('online.searchUser')}
+            title={t('common.search')}
           >
             {searchOpen ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
           </button>
           <Link
             to="/settings"
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted transition hover:bg-panel hover:text-text md:hidden"
-            aria-label="Pengaturan"
-            title="Pengaturan"
+            aria-label={t('common.settings')}
+            title={t('common.settings')}
           >
             <Settings className="h-5 w-5" />
           </Link>
@@ -201,16 +203,16 @@ export function NewChatPage() {
               ref={searchInputRef}
               value={term}
               onChange={(event) => setTerm(event.target.value)}
-              placeholder="Cari nama pengguna..."
+              placeholder={t('online.searchUser')}
               className="h-11 w-full rounded-2xl border border-border bg-surface pl-10 pr-10 text-[13.5px] text-text outline-none transition placeholder:text-muted-2 focus:border-primary/40 focus:ring-2 focus:ring-primary/10"
-              aria-label="Cari nama pengguna"
+              aria-label={t('online.searchUser')}
             />
             {term ? (
               <button
                 type="button"
                 onClick={() => setTerm('')}
                 className="absolute right-2.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-muted-2 hover:bg-panel hover:text-text"
-                aria-label="Hapus pencarian"
+                aria-label={t('settings.clear')}
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -262,12 +264,10 @@ export function NewChatPage() {
                 <Sparkles className="h-5 w-5" />
               </div>
               <p className="mt-3 text-[13px] font-medium text-text">
-                {searching ? 'Nama tidak ditemukan' : 'Tidak ada pengguna online'}
+                {searching ? t('online.notFound') : t('online.noUsers')}
               </p>
               <p className="mt-1 max-w-[260px] text-[11.5px] leading-relaxed text-muted">
-                {searching
-                  ? 'Coba ejaan lain atau ajak temanmu bergabung ke ChatYuk.'
-                  : 'Coba ubah filter negara/gender, atau ketik nama di kolom pencarian.'}
+                {searching ? t('online.notFoundHint') : t('online.noUsersHint')}
               </p>
             </div>
           ) : (

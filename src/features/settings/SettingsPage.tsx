@@ -7,6 +7,7 @@ import {
   Info,
   KeyRound,
   LogOut,
+  Languages,
   Monitor,
   Moon,
   Shield,
@@ -42,6 +43,7 @@ import { config, envLabel, supabaseHost } from '@/lib/runtime-config'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore, type ThemeMode } from '@/stores/ui'
+import { setLanguage, type Lang } from '@/lib/i18n'
 import type { PrivacySettings } from '@/lib/types'
 
 const PRIVACY_OPTIONS = [
@@ -72,6 +74,9 @@ export function SettingsPage() {
   const refreshProfile = useAuthStore((state) => state.refreshProfile)
   const signOut = useAuthStore((state) => state.signOut)
   const theme = useUiStore((state) => state.theme)
+  const [lang, setLangState] = useState<Lang>(
+    () => (document.documentElement.lang === 'id' ? 'id' : 'en') as Lang,
+  )
   const setTheme = useUiStore((state) => state.setTheme)
 
   const [nickname, setNickname] = useState(profile?.nickname ?? '')
@@ -715,6 +720,42 @@ export function SettingsPage() {
             </form>
           </section>
         ) : null}
+
+        {/* Bahasa — EN (default) / ID, sama seperti aplikasi Android */}
+        <section className="mt-4 overflow-hidden rounded-3xl border border-border bg-surface shadow-sm">
+          <div className="flex items-center gap-3 border-b border-border/70 px-5 py-4">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-soft text-primary">
+              <Languages className="h-[18px] w-[18px]" />
+            </div>
+            <div>
+              <h2 className="text-[14px] font-semibold text-text">Language / Bahasa</h2>
+              <p className="text-[11px] text-muted">English (default) · Bahasa Indonesia</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2 p-4">
+            {([
+              ['en', 'English'],
+              ['id', 'Bahasa Indonesia'],
+            ] as Array<[Lang, string]>).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => {
+                  setLanguage(value)
+                  setLangState(value)
+                }}
+                className={cn(
+                  'h-11 rounded-xl border text-[12.5px] font-medium transition',
+                  lang === value
+                    ? 'border-primary/40 bg-primary-soft text-primary'
+                    : 'border-border bg-surface text-muted hover:bg-panel',
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </section>
 
         <section className="mt-4 overflow-hidden rounded-3xl border border-border bg-surface shadow-sm">
           <div className="flex items-center gap-3 border-b border-border/70 px-5 py-4">

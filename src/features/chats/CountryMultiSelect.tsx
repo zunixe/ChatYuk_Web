@@ -1,5 +1,6 @@
 import { Check, ChevronDown, FilterX, Search } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ALL_COUNTRIES, countriesCountText } from '@/lib/countries'
 import { cn } from '@/lib/utils'
 
@@ -22,6 +23,7 @@ export function CountryMultiSelect({
   onApply: (countries: string[]) => void
   disabled?: boolean
 }) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [openAbove, setOpenAbove] = useState(false)
   const [query, setQuery] = useState('')
@@ -32,7 +34,7 @@ export function CountryMultiSelect({
 
   const fieldText =
     selected.length === 0
-      ? 'Semua negara'
+      ? t('common.all')
       : selected.length === 1
         ? selected[0]
         : countriesCountText(selected.length)
@@ -126,7 +128,7 @@ export function CountryMultiSelect({
           <span
             role="button"
             tabIndex={0}
-            aria-label="Kosongkan negara"
+            aria-label={t('settings.clear')}
             onClick={(event) => {
               event.stopPropagation()
               onApply([])
@@ -151,7 +153,7 @@ export function CountryMultiSelect({
         <div
           ref={panelRef}
           role="dialog"
-          aria-label="Filter negara"
+          aria-label={t('common.country')}
           className={cn(
             'absolute z-40 w-[calc(100%+96px)] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-border bg-surface shadow-xl',
             openAbove ? 'bottom-full mb-1' : 'top-full mt-1',
@@ -164,8 +166,8 @@ export function CountryMultiSelect({
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Cari negara"
-                aria-label="Cari negara"
+                placeholder={t('online.searchCountry')}
+                aria-label={t('online.searchCountry')}
                 autoFocus
                 className="h-10 w-full rounded-lg border border-border bg-surface pl-8 pr-3 text-[12px] text-text outline-none placeholder:text-muted-2 focus:border-primary/50"
               />
@@ -220,7 +222,7 @@ export function CountryMultiSelect({
               className="inline-flex h-10 items-center gap-1.5 rounded-lg px-2 text-[11.5px] font-semibold text-muted transition hover:bg-panel"
             >
               <FilterX className="h-3.5 w-3.5" />
-              Reset
+              {t('online.reset')}
             </button>
             <button
               type="button"
@@ -228,7 +230,7 @@ export function CountryMultiSelect({
               className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-primary px-3 text-[11.5px] font-semibold text-white transition hover:bg-primary-strong"
             >
               <Check className="h-3.5 w-3.5" />
-              Terapkan ({temp.length})
+              {t('online.apply')} ({temp.length})
             </button>
           </div>
         </div>

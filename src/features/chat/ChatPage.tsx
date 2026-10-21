@@ -22,6 +22,7 @@ import {
   X,
 } from 'lucide-react'
 import { Fragment, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Avatar } from '@/components/ui/avatar'
@@ -81,6 +82,7 @@ function senderNameOf(message: Message): string {
 }
 
 export function ChatPage() {
+  const { t } = useTranslation()
   const { chatId } = useParams()
   const queryClient = useQueryClient()
   const authProfile = useAuthStore((state) => state.profile)
@@ -302,14 +304,14 @@ export function ChatPage() {
         <div>
           <h2 className="font-display text-[17px] font-semibold text-text">Chat tidak ditemukan</h2>
           <p className="mt-1 max-w-xs text-[12px] leading-relaxed text-muted">
-            Percakapan ini mungkin sudah dihapus atau kamu tidak memiliki akses.
+            {t('chat.notFoundHint')}
           </p>
         </div>
         <Link
           to="/chats"
           className="rounded-xl bg-primary px-4 py-2.5 text-[13px] font-medium text-white transition hover:bg-primary-strong"
         >
-          Kembali ke daftar chat
+          {t('chat.backToChats')}
         </Link>
       </div>
     )
@@ -320,8 +322,8 @@ export function ChatPage() {
       {outbox.pending > 0 ? (
         <div className="flex shrink-0 items-center justify-center gap-2 bg-amber-500/15 px-3 py-1.5 text-[11.5px] font-medium text-amber-700 dark:text-amber-300">
           <span>
-            {outbox.pending} pesan menunggu koneksi
-            {outbox.flushing ? ' · mengirim…' : ''}
+            {t('chat.queued', { count: outbox.pending })}
+            {outbox.flushing ? ` · ${t('chat.sending')}` : ''}
           </span>
           {!outbox.flushing ? (
             <button
@@ -329,7 +331,7 @@ export function ChatPage() {
               onClick={outbox.flushNow}
               className="rounded-md underline underline-offset-2"
             >
-              Kirim sekarang
+              {t('chat.sendNow')}
             </button>
           ) : null}
         </div>
@@ -393,21 +395,21 @@ export function ChatPage() {
             <DropdownMenuContent align="end" className="w-52">
               <DropdownMenuItem onSelect={() => setProfileOpen(true)}>
                 <Info className="h-4 w-4" />
-                Lihat profil
+                {t('chat.viewProfile')}
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => void togglePin()}>
                 <Pin className="h-4 w-4" />
-                {pinned ? 'Lepas pin' : 'Sematkan chat'}
+                {pinned ? t('chat.unpinChat') : t('chat.pinChat')}
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => void toggleMute()}>
                 {muted ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
-                {muted ? 'Bunyikan notifikasi' : 'Bisukan chat'}
+                {muted ? t('chat.unmuteChat') : t('chat.muteChat')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link to="/chats">
                   <ArrowLeft className="h-4 w-4" />
-                  Kembali ke daftar chat
+                  {t('chat.backToList')}
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -418,7 +420,7 @@ export function ChatPage() {
       {!connected && chat ? (
         <div className="flex items-center justify-center gap-1.5 bg-amber-500/10 px-3 py-1 text-[10px] font-medium text-amber-700 dark:text-amber-300">
           <Loader2 className="h-3 w-3 animate-spin" />
-          Menyambungkan ulang realtime…
+          {t('chat.reconnecting')}
         </div>
       ) : null}
 
@@ -439,7 +441,7 @@ export function ChatPage() {
                     onClick={loadOlder}
                     className="rounded-full bg-panel px-3 py-1.5 text-[11.5px] font-medium text-muted transition hover:bg-panel-2 hover:text-text"
                   >
-                    Muat pesan lama
+                    {t('chat.loadOlder')}
                   </button>
                 )}
               </div>
@@ -621,7 +623,7 @@ export function ChatPage() {
           {otherBlocked ? (
             <div className="flex min-w-0 flex-1 items-center gap-2 rounded-2xl border border-danger/25 bg-danger/8 px-3.5 py-2.5 text-[12px] text-danger">
               <ShieldOff className="h-4 w-4 shrink-0" />
-              <span className="min-w-0 flex-1">Kamu memblokir pengguna ini.</span>
+              <span className="min-w-0 flex-1">{t('chat.blockedBanner')}</span>
               <button
                 type="button"
                 className="shrink-0 rounded-lg px-2 py-1 text-[11.5px] font-medium underline underline-offset-2"
@@ -634,7 +636,7 @@ export function ChatPage() {
                   )
                 }}
               >
-                Buka blokir
+                {t('chat.unblock')}
               </button>
             </div>
           ) : null}
@@ -659,7 +661,7 @@ export function ChatPage() {
                 type="button"
                 disabled={mediaBusy || otherBlocked}
                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted transition hover:bg-panel hover:text-text disabled:opacity-50"
-                aria-label="Lampiran"
+                aria-label={t('chat.attachment')}
                 title="Lampiran"
               >
                 {mediaBusy ? <Spinner /> : <Paperclip className="h-[19px] w-[19px]" />}
@@ -675,7 +677,7 @@ export function ChatPage() {
                 }}
               >
                 <FileText className="h-4 w-4 text-primary" />
-                Dokumen
+                {t('chat.document')}
               </button>
               <button
                 type="button"
@@ -686,7 +688,7 @@ export function ChatPage() {
                 }}
               >
                 <Video className="h-4 w-4 text-primary" />
-                Video
+                {t('chat.video')}
               </button>
               <button
                 type="button"
@@ -697,7 +699,7 @@ export function ChatPage() {
                 }}
               >
                 <MapPin className="h-4 w-4 text-primary" />
-                Lokasi
+                {t('chat.location')}
               </button>
               <button
                 type="button"
@@ -708,7 +710,7 @@ export function ChatPage() {
                 }}
               >
                 <Mic className="h-4 w-4 text-primary" />
-                Rekam suara
+                {t('chat.recordVoice')}
               </button>
             </PopoverContent>
           </Popover>
@@ -718,7 +720,7 @@ export function ChatPage() {
             onClick={() => fileRef.current?.click()}
             disabled={imageBusy || otherBlocked}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted transition hover:bg-panel hover:text-text disabled:opacity-50"
-            aria-label="Kirim gambar"
+            aria-label={t('chat.sendImage')}
             title="Kirim gambar"
           >
             {imageBusy ? <Spinner /> : <ImagePlus className="h-[19px] w-[19px]" />}
@@ -734,9 +736,9 @@ export function ChatPage() {
               onChange={(event) => handleTextChange(event.target.value)}
               onKeyDown={handleKeyDown}
               onBlur={stopTyping}
-              placeholder="Ketik pesan..."
+              placeholder={t('chat.typeMessage')}
               className="composer-textarea block h-10 max-h-24 w-full resize-none rounded-2xl border border-transparent bg-panel px-3.5 py-[11px] text-[13.5px] leading-[18px] text-text outline-none transition placeholder:text-muted-2 focus:border-primary/30 focus:bg-surface focus:ring-2 focus:ring-primary/10"
-              aria-label="Ketik pesan"
+              aria-label={t('chat.typeMessage')}
             />
           </div>
 
@@ -745,7 +747,7 @@ export function ChatPage() {
             onClick={() => void sendTextMessage()}
             disabled={!text.trim() || otherBlocked}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-white shadow-[0_8px_20px_-10px_rgb(33_150_243/0.9)] transition hover:bg-primary-strong disabled:bg-panel-2 disabled:text-muted-2 disabled:shadow-none"
-            aria-label="Kirim pesan"
+            aria-label={t('chat.send')}
             title="Kirim"
           >
             <SendHorizontal className="h-[19px] w-[19px]" />
@@ -754,7 +756,7 @@ export function ChatPage() {
 
         <div className="mx-auto mt-1 flex max-w-4xl items-center justify-between gap-2 px-2">
           <p className="hidden text-[9px] text-muted-2 sm:block">
-            Enter untuk kirim · Shift + Enter untuk baris baru
+            {t('chat.enterToSend')}
           </p>
           {text.length > 1800 ? (
             <span className="ml-auto text-[9.5px] text-muted-2">{text.length}/2000</span>

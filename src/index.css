@@ -225,6 +225,19 @@
     }
   }
 
+  /* Utilitas aksesibilitas: tampil untuk screen reader, tidak untuk mata. */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
   .animate-in-up {
     animation: in-up 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }

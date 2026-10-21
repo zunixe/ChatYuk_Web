@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Label } from '@/components/ui/input'
 import { SearchSelect } from '@/components/ui/search-select'
 import { AGES, COUNTRIES, getCities } from '@/lib/regions'
@@ -31,6 +32,7 @@ export function RegionFields({
   onCityChange: (value: string) => void
   disabled?: boolean
 }) {
+  const { t } = useTranslation()
   const cities = withCurrent(getCities(country), city)
   const ageOptions = AGES.map((value) => String(value))
 
@@ -43,11 +45,11 @@ export function RegionFields({
           </Label>
           <SearchSelect
             id="region-age"
-            label="Umur"
+            label={t('common.age')}
             value={age}
             options={ageOptions}
             onChange={onAgeChange}
-            searchPlaceholder="Cari umur..."
+            searchPlaceholder={t('common.age')}
             disabled={disabled}
           />
         </div>
@@ -57,11 +59,11 @@ export function RegionFields({
           </Label>
           <SearchSelect
             id="region-country"
-            label="Negara"
+            label={t('common.country')}
             value={country}
             options={withCurrent(COUNTRIES, country)}
             onChange={onCountryChange}
-            searchPlaceholder="Cari negara..."
+            searchPlaceholder={t('online.searchCountry')}
             disabled={disabled}
           />
         </div>
@@ -73,12 +75,12 @@ export function RegionFields({
         </Label>
         <SearchSelect
           id="region-city"
-          label="Kota"
+          label={t('common.city')}
           value={city}
           options={cities}
           onChange={onCityChange}
           searchPlaceholder="Cari kota..."
-          emptyText={cities.length === 0 ? 'Pilih negara dulu' : 'Tidak ditemukan'}
+          emptyText={cities.length === 0 ? t('common.country') : t('online.notFound')}
           disabled={disabled}
         />
       </div>

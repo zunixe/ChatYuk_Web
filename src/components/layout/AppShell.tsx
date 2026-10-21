@@ -11,6 +11,7 @@ import type { ReactNode } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { LogoMark } from '@/components/brand/Logo'
+import { PlayStoreIconLink } from '@/components/brand/PlayStoreBadge'
 import { Avatar } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -98,7 +99,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           ))}
         </nav>
 
-        <div className="mt-auto flex flex-col items-center gap-3">
+        <div className="mt-auto flex w-full flex-col items-center gap-3">
+          {/* Unduh aplikasi Android — sidebar hanya 76px, jadi ikon saja
+              (teks lengkap tampil sebagai tooltip & di halaman utama). */}
+          <PlayStoreIconLink />
           <NavLink
             to="/settings"
             title="Pengaturan"

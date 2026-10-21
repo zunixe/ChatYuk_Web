@@ -1,5 +1,6 @@
 import { AlertCircle, ArrowRight, Mail, UserRound } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { AuthLayout } from '@/features/auth/AuthLayout'
@@ -18,11 +19,12 @@ import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth'
 
 const GENDERS = [
-  { value: 'female', label: 'Perempuan' },
-  { value: 'male', label: 'Laki-laki' },
+  { value: 'female', labelKey: 'common.female' },
+  { value: 'male', labelKey: 'common.male' },
 ] as const
 
 export function WelcomePage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const refreshProfile = useAuthStore((state) => state.refreshProfile)
 
@@ -84,8 +86,8 @@ export function WelcomePage() {
 
   return (
     <AuthLayout
-      title="Ngobrol, Cerita, Ketawa"
-      subtitle="Langsung ngobrol, tanpa ribet!"
+      title={t('auth.tagline')}
+      subtitle={t('auth.subtagline')}
     >
       <form onSubmit={handleStart} className="space-y-4">
         {error ? (
@@ -96,13 +98,13 @@ export function WelcomePage() {
         ) : null}
 
         <div>
-          <Label htmlFor="welcome-nickname">Username</Label>
+          <Label htmlFor="welcome-nickname">{t('auth.username')}</Label>
           <div className="relative">
             <UserRound className="pointer-events-none absolute left-3.5 top-1/2 h-[17px] w-[17px] -translate-y-1/2 text-muted-2" />
             <Input
               id="welcome-nickname"
               className="pl-10"
-              placeholder="Pilih nickname kamu..."
+              placeholder={t('auth.nicknamePlaceholder')}
               maxLength={20}
               value={nickname}
               onChange={(event) => setNickname(event.target.value)}
@@ -113,7 +115,7 @@ export function WelcomePage() {
         </div>
 
         <div>
-          <Label>Jenis kelamin</Label>
+          <Label>{t('auth.gender')}</Label>
           <div className="grid grid-cols-2 gap-2">
             {GENDERS.map((option) => (
               <button
@@ -128,7 +130,7 @@ export function WelcomePage() {
                     : 'border-border bg-surface text-muted hover:bg-panel',
                 )}
               >
-                {option.label}
+                {t(option.labelKey)}
               </button>
             ))}
           </div>
@@ -149,18 +151,18 @@ export function WelcomePage() {
 
         <Button type="submit" size="lg" className="w-full" disabled={loading}>
           {loading ? <Spinner /> : null}
-          {loading ? 'Menyiapkan…' : 'MULAI CHAT SEKARANG'}
+          {loading ? t('auth.preparing') : t('auth.startChat')}
           {!loading ? <ArrowRight className="h-4 w-4" /> : null}
         </Button>
 
         <p className="text-center text-[11px] leading-relaxed text-muted-2">
-          Akun anonim tidak bisa dipulihkan jika logout. Daftarkan email agar data kamu aman.
+          {t('auth.anonWarning')}
         </p>
       </form>
 
       <div className="my-5 flex items-center gap-3">
         <span className="h-px flex-1 bg-border" />
-        <span className="text-[11px] font-medium uppercase tracking-wider text-muted-2">atau</span>
+        <span className="text-[11px] font-medium uppercase tracking-wider text-muted-2">{t('auth.orContinue')}</span>
         <span className="h-px flex-1 bg-border" />
       </div>
 
@@ -171,14 +173,14 @@ export function WelcomePage() {
           className={cn(buttonVariants({ variant: 'secondary', size: 'lg' }), 'w-full')}
         >
           <Mail className="h-4 w-4" />
-          Daftar dengan email
+          {t('auth.registerEmail')}
         </Link>
       </div>
 
       <p className="mt-6 text-center text-sm text-muted">
-        Sudah punya akun?{' '}
+        {t('auth.haveAccount')}{' '}
         <Link to="/login/email" className="font-medium text-primary hover:text-primary-strong">
-          Masuk di sini
+          {t('auth.loginHere')}
         </Link>
       </p>
     </AuthLayout>

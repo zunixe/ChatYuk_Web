@@ -1,5 +1,6 @@
 import { BellOff, Pin } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Avatar } from '@/components/ui/avatar'
 import {
   chatDisplayName,
@@ -20,13 +21,14 @@ interface ChatListItemProps {
 }
 
 export function ChatListItem({ chat, myUid, avatar, presence }: ChatListItemProps) {
+  const { t } = useTranslation()
   const otherUid = otherParticipant(chat, myUid)
   const name = chatDisplayName(chat, myUid)
   const unread = chatUnreadCount(chat, myUid)
   const pinned = chatIsPinned(chat, myUid)
   const muted = chatIsMuted(chat, myUid)
   const lastMessage = (chat.last_message ?? '').trim()
-  const preview = lastMessage || 'Mulai obrolan'
+  const preview = lastMessage || t('chats.startConversation')
   const online = presence?.status === 'online'
   // Gender lawan bicara (tersimpan di private_chats.participant_genders),
   // sama seperti label gender di aplikasi mobile.
@@ -76,7 +78,7 @@ export function ChatListItem({ chat, myUid, avatar, presence }: ChatListItemProp
             </div>
             <div className="mt-0.5 flex items-center gap-1.5">
               {chat.last_sender_id === myUid && lastMessage ? (
-                <span className="shrink-0 text-[12px] text-muted-2">Kamu:</span>
+                <span className="shrink-0 text-[12px] text-muted-2">{t('chats.youPrefix')}</span>
               ) : null}
               <span
                 className={cn(

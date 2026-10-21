@@ -1,5 +1,6 @@
 import { MessageCircle, Plus, RefreshCw, Search, Settings, X } from 'lucide-react'
 import { useDeferredValue, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { Logo } from '@/components/brand/Logo'
 import { Button } from '@/components/ui/button'
@@ -29,6 +30,7 @@ function ChatSkeleton() {
 }
 
 export function ChatsPage() {
+  const { t } = useTranslation()
   const profile = useAuthStore((state) => state.profile)
   const [filter, setFilter] = useState<Filter>('all')
   const [term, setTerm] = useState('')
@@ -63,23 +65,23 @@ export function ChatsPage() {
         <div className="hidden min-w-0 flex-1 md:block">
           <h1 className="font-display text-[22px] font-semibold tracking-tight text-text">Chat</h1>
           <p className="mt-0.5 text-[11.5px] text-muted">
-            {chats.length > 0 ? `${chats.length} obrolan tersimpan` : 'Belum ada obrolan'}
-            {unread > 0 ? ` · ${unread} belum dibaca` : ''}
+            {chats.length > 0 ? t('chats.conversations', { count: chats.length }) : t('chats.noConversations')}
+            {unread > 0 ? ` · ${t('chats.unreadCount', { count: unread })}` : ''}
           </p>
         </div>
         <Link
           to="/new-chat"
           className="ml-auto flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-primary transition hover:bg-primary/15"
-          aria-label="Buka Online"
-          title="Online"
+          aria-label={t('online.title')}
+          title={t('online.title')}
         >
           <Plus className="h-5 w-5" />
         </Link>
         <Link
           to="/settings"
           className="flex h-10 w-10 items-center justify-center rounded-xl text-muted transition hover:bg-panel hover:text-text md:hidden"
-          aria-label="Pengaturan"
-          title="Pengaturan"
+          aria-label={t('common.settings')}
+          title={t('common.settings')}
         >
           <Settings className="h-5 w-5" />
         </Link>
@@ -91,16 +93,16 @@ export function ChatsPage() {
           <input
             value={term}
             onChange={(event) => setTerm(event.target.value)}
-            placeholder="Cari chat atau pesan…"
+            placeholder={t('chats.searchPlaceholder')}
             className="h-10 w-full rounded-xl border border-transparent bg-panel pl-10 pr-9 text-[13px] text-text outline-none transition placeholder:text-muted-2 focus:border-primary/30 focus:bg-surface focus:ring-2 focus:ring-primary/10"
-            aria-label="Cari chat"
+            aria-label={t('chats.searchPlaceholder')}
           />
           {term ? (
             <button
               type="button"
               onClick={() => setTerm('')}
               className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-muted-2 hover:bg-panel-2 hover:text-text"
-              aria-label="Hapus pencarian"
+              aria-label={t('settings.clear')}
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -121,7 +123,7 @@ export function ChatsPage() {
                 : 'text-muted hover:bg-panel hover:text-text',
             )}
           >
-            {value === 'all' ? 'Semua' : 'Belum dibaca'}
+            {value === 'all' ? t('chats.filterAll') : t('chats.filterUnread')}
             {value === 'unread' && unread > 0 ? ` (${unread})` : ''}
           </button>
         ))}
@@ -163,7 +165,7 @@ export function ChatsPage() {
             </h2>
             <p className="mt-1.5 max-w-[250px] text-xs leading-relaxed text-muted">
               {term || filter === 'unread'
-                ? 'Coba kata kunci lain atau lihat semua chat.'
+                ? t('chats.noResultHint')
                 : 'Temukan teman baru lewat nama panggilan mereka, lalu sapa duluan.'}
             </p>
             {term || filter === 'unread' ? (
@@ -182,7 +184,7 @@ export function ChatsPage() {
               <Link to="/new-chat" className="mt-4">
                 <Button size="sm">
                   <Plus className="h-4 w-4" />
-                  Cari teman
+                  {t('chats.findFriend')}
                 </Button>
               </Link>
             )}

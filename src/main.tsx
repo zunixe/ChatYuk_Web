@@ -4,7 +4,9 @@ import App from '@/App'
 import '@/index.css'
 import { bootstrapAuth } from '@/stores/auth'
 import { initTheme } from '@/stores/ui'
+import { initLanguage } from '@/lib/i18n'
 
+initLanguage()
 initTheme()
 bootstrapAuth()
 

@@ -1,13 +1,14 @@
 import { Check, ChevronDown, UserRound } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 
 export type GenderFilter = 'all' | 'male' | 'female'
 
-const OPTIONS: Array<{ value: GenderFilter; label: string }> = [
-  { value: 'all', label: 'Semua' },
-  { value: 'male', label: 'Laki-laki' },
-  { value: 'female', label: 'Perempuan' },
+const OPTIONS: Array<{ value: GenderFilter; labelKey: string }> = [
+  { value: 'all', labelKey: 'common.all' },
+  { value: 'male', labelKey: 'common.male' },
+  { value: 'female', labelKey: 'common.female' },
 ]
 
 /**
@@ -27,6 +28,7 @@ export function GenderDropdown({
   onChange: (value: GenderFilter) => void
   disabled?: boolean
 }) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [openAbove, setOpenAbove] = useState(false)
   const fieldRef = useRef<HTMLButtonElement>(null)
@@ -83,7 +85,7 @@ export function GenderDropdown({
         <span className="min-w-0 flex-1">
           <span className="block text-[9.5px] leading-none text-muted-2">{label}</span>
           <span className="mt-1 block truncate text-[12.5px] leading-none text-text">
-            {current.label}
+            {t(current.labelKey)}
           </span>
         </span>
         <ChevronDown className={cn('h-4 w-4 shrink-0 text-muted-2 transition-transform', open && 'rotate-180')} />
@@ -117,7 +119,7 @@ export function GenderDropdown({
                       active ? 'font-bold text-primary' : 'text-text',
                     )}
                   >
-                    <span className="min-w-0 flex-1 truncate">{option.label}</span>
+                    <span className="min-w-0 flex-1 truncate">{t(option.labelKey)}</span>
                     {active ? <Check className="h-4 w-4 shrink-0 text-primary" /> : null}
                   </button>
                 </li>

@@ -4,7 +4,10 @@ import countries from '@/lib/countries.data.json'
 
 export const ALL_COUNTRIES: string[] = countries
 
-/** Teks field saat >1 negara dipilih (mobile: `selCountriesCount`). */
-export function countriesCountText(n: number): string {
-  return `${n} negara`
+/**
+ * Teks field saat >1 negara dipilih (mobile: `selCountriesCount`).
+ * i18n: EN "n countries", ID "n negara".
+ */
+export function countriesCountText(n: number, lang: string = 'en'): string {
+  return lang === 'id' ? `${n} negara` : `${n} countries`
 }

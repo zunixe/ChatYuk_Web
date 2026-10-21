@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, MessageCirclePlus, Search, Settings, Sparkles, X } from 'lucide-react'
-import { useDeferredValue, useMemo, useState } from 'react'
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Avatar } from '@/components/ui/avatar'
@@ -100,6 +100,9 @@ export function NewChatPage() {
   // Filter gender — sama seperti mobile: all | male | female (single-select).
   const [gender, setGender] = useState<GenderFilter>('all')
   const [startingUid, setStartingUid] = useState<string | null>(null)
+  // Perilaku Android: kolom cari tersembunyi, dibuka lewat ikon kaca pembesar.
+  const [searchOpen, setSearchOpen] = useState(false)
+  const searchInputRef = useRef<HTMLInputElement>(null)
   const deferredTerm = useDeferredValue(term)
 
   const myUid = profile?.id
@@ -108,7 +111,11 @@ export function NewChatPage() {
 
   // Pencarian langsung di kolom ketik (≥2 huruf) — tanpa tab terpisah.
   const canSearch = deferredTerm.trim().length >= 2
-  const searching = canSearch
+  const searching = searchOpen && canSearch
+
+  useEffect(() => {
+    if (searchOpen) searchInputRef.current?.focus()
+  }, [searchOpen])
 
   const blockedSet = useBlockedSet(myUid)
   const users = useMemo(() => {
@@ -161,12 +168,22 @@ export function NewChatPage() {
           </Link>
           <div className="min-w-0 flex-1">
             <h1 className="font-display text-[24px] font-semibold tracking-tight text-text">
-              Online
+              Pengguna Online
             </h1>
-            <p className="mt-0.5 text-[12px] text-muted">
-              Pengguna yang sedang online — pilih untuk mulai chat atau cari lewat nama.
-            </p>
+            <p className="mt-0.5 text-[12px] text-muted">Ngobrol, Cerita, Ketawa</p>
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              setSearchOpen((open) => !open)
+              if (searchOpen) setTerm('')
+            }}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted transition hover:bg-panel hover:text-text"
+            aria-label={searchOpen ? 'Tutup pencarian' : 'Cari nama pengguna'}
+            title={searchOpen ? 'Tutup pencarian' : 'Cari'}
+          >
+            {searchOpen ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
+          </button>
           <Link
             to="/settings"
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted transition hover:bg-panel hover:text-text md:hidden"
@@ -177,26 +194,29 @@ export function NewChatPage() {
           </Link>
         </header>
 
-        <div className="relative mt-5">
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-2" />
-          <input
-            value={term}
-            onChange={(event) => setTerm(event.target.value)}
-            placeholder="Ketik nama panggilan (min. 2 huruf)…"
-            className="h-11 w-full rounded-2xl border border-border bg-surface pl-10 pr-10 text-[13.5px] text-text outline-none transition placeholder:text-muted-2 focus:border-primary/40 focus:ring-2 focus:ring-primary/10"
-            aria-label="Cari pengguna"
-          />
-          {term ? (
-            <button
-              type="button"
-              onClick={() => setTerm('')}
-              className="absolute right-2.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-muted-2 hover:bg-panel hover:text-text"
-              aria-label="Hapus pencarian"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          ) : null}
-        </div>
+        {searchOpen ? (
+          <div className="relative mt-5">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-2" />
+            <input
+              ref={searchInputRef}
+              value={term}
+              onChange={(event) => setTerm(event.target.value)}
+              placeholder="Cari nama pengguna..."
+              className="h-11 w-full rounded-2xl border border-border bg-surface pl-10 pr-10 text-[13.5px] text-text outline-none transition placeholder:text-muted-2 focus:border-primary/40 focus:ring-2 focus:ring-primary/10"
+              aria-label="Cari nama pengguna"
+            />
+            {term ? (
+              <button
+                type="button"
+                onClick={() => setTerm('')}
+                className="absolute right-2.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-muted-2 hover:bg-panel hover:text-text"
+                aria-label="Hapus pencarian"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            ) : null}
+          </div>
+        ) : null}
 
         {/* Filter berdampingan — sama persis dengan layar Online Android:
             Negara (multi-select 141, checklist + cari + Reset/Terapkan)
@@ -242,7 +262,7 @@ export function NewChatPage() {
                 <Sparkles className="h-5 w-5" />
               </div>
               <p className="mt-3 text-[13px] font-medium text-text">
-                {searching ? 'Nama tidak ditemukan' : 'Belum ada yang online'}
+                {searching ? 'Nama tidak ditemukan' : 'Tidak ada pengguna online'}
               </p>
               <p className="mt-1 max-w-[260px] text-[11.5px] leading-relaxed text-muted">
                 {searching

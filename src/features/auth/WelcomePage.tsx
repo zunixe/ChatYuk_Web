@@ -84,8 +84,8 @@ export function WelcomePage() {
 
   return (
     <AuthLayout
-      title="Mulai ChatYuk"
-      subtitle="Isi profil singkat untuk langsung ngobrol sebagai tamu — atau masuk dengan Google/email."
+      title="Ngobrol, Cerita, Ketawa"
+      subtitle="Langsung ngobrol, tanpa ribet!"
     >
       <form onSubmit={handleStart} className="space-y-4">
         {error ? (
@@ -96,13 +96,13 @@ export function WelcomePage() {
         ) : null}
 
         <div>
-          <Label htmlFor="welcome-nickname">Nama panggilan</Label>
+          <Label htmlFor="welcome-nickname">Username</Label>
           <div className="relative">
             <UserRound className="pointer-events-none absolute left-3.5 top-1/2 h-[17px] w-[17px] -translate-y-1/2 text-muted-2" />
             <Input
               id="welcome-nickname"
               className="pl-10"
-              placeholder="Contoh: Raka"
+              placeholder="Pilih nickname kamu..."
               maxLength={20}
               value={nickname}
               onChange={(event) => setNickname(event.target.value)}
@@ -149,12 +149,12 @@ export function WelcomePage() {
 
         <Button type="submit" size="lg" className="w-full" disabled={loading}>
           {loading ? <Spinner /> : null}
-          {loading ? 'Menyiapkan…' : 'Mulai Chat'}
+          {loading ? 'Menyiapkan…' : 'MULAI CHAT SEKARANG'}
           {!loading ? <ArrowRight className="h-4 w-4" /> : null}
         </Button>
 
         <p className="text-center text-[11px] leading-relaxed text-muted-2">
-          Akun tamu dibuat otomatis. Tambahkan email nanti di Pengaturan agar akun bisa dipulihkan.
+          Akun anonim tidak bisa dipulihkan jika logout. Daftarkan email agar data kamu aman.
         </p>
       </form>
 

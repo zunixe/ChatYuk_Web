@@ -734,9 +734,9 @@ export function ChatPage() {
               onChange={(event) => handleTextChange(event.target.value)}
               onKeyDown={handleKeyDown}
               onBlur={stopTyping}
-              placeholder="Tulis pesan…"
+              placeholder="Ketik pesan..."
               className="composer-textarea block h-10 max-h-24 w-full resize-none rounded-2xl border border-transparent bg-panel px-3.5 py-[11px] text-[13.5px] leading-[18px] text-text outline-none transition placeholder:text-muted-2 focus:border-primary/30 focus:bg-surface focus:ring-2 focus:ring-primary/10"
-              aria-label="Tulis pesan"
+              aria-label="Ketik pesan"
             />
           </div>
 

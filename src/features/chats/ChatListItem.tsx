@@ -28,6 +28,9 @@ export function ChatListItem({ chat, myUid, avatar, presence }: ChatListItemProp
   const lastMessage = (chat.last_message ?? '').trim()
   const preview = lastMessage || 'Mulai obrolan'
   const online = presence?.status === 'online'
+  // Gender lawan bicara (tersimpan di private_chats.participant_genders),
+  // sama seperti label gender di aplikasi mobile.
+  const otherGender = chat.participant_genders?.[otherUid] ?? ''
 
   return (
     <NavLink
@@ -50,6 +53,18 @@ export function ChatListItem({ chat, myUid, avatar, presence }: ChatListItemProp
               <span className="min-w-0 flex-1 truncate text-[14.5px] font-medium text-text">
                 {name}
               </span>
+              {otherGender === 'male' || otherGender === 'female' ? (
+                <span
+                  className={
+                    otherGender === 'male'
+                      ? 'shrink-0 rounded-full bg-sky-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-sky-600 dark:text-sky-400'
+                      : 'shrink-0 rounded-full bg-pink-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-pink-600 dark:text-pink-400'
+                  }
+                  title={otherGender === 'male' ? 'Laki-laki' : 'Perempuan'}
+                >
+                  {otherGender === 'male' ? 'L' : 'P'}
+                </span>
+              ) : null}
               <span
                 className={cn(
                   'shrink-0 text-[11px] tabular-nums',

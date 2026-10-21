@@ -35,7 +35,8 @@ function UserRow({
   disabled: boolean
   onSelect: () => void
 }) {
-  const meta = [user.age ? `${user.age} th` : null, user.city, user.country]
+  const genderText = user.gender === 'male' ? 'Laki-laki' : user.gender === 'female' ? 'Perempuan' : ''
+  const meta = [genderText, user.age ? `${user.age} th` : null, user.city, user.country]
     .filter(Boolean)
     .join(' · ')
   const isOnline = status === 'online'
@@ -52,6 +53,19 @@ function UserRow({
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="truncate text-[14px] font-medium text-text">{user.nickname}</span>
+          {user.gender === 'male' || user.gender === 'female' ? (
+            <span
+              className={
+                user.gender === 'male'
+                  ? 'shrink-0 rounded-full bg-sky-500/10 px-1.5 py-0.5 text-[9.5px] font-semibold text-sky-600 dark:text-sky-400'
+                  : 'shrink-0 rounded-full bg-pink-500/10 px-1.5 py-0.5 text-[9.5px] font-semibold text-pink-600 dark:text-pink-400'
+              }
+              aria-label={genderText}
+              title={genderText}
+            >
+              {user.gender === 'male' ? 'L' : 'P'}
+            </span>
+          ) : null}
           {isOnline ? (
             <span className="shrink-0 rounded-full bg-online/10 px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-wide text-online">
               Online
@@ -84,6 +98,8 @@ export function NewChatPage() {
   const [tab, setTab] = useState<Tab>('online')
   const [scope, setScope] = useState<Scope>('mine')
   const [term, setTerm] = useState('')
+  // Filter gender — sama seperti mobile: all | male | female (single-select).
+  const [gender, setGender] = useState<'all' | 'male' | 'female'>('all')
   const [startingUid, setStartingUid] = useState<string | null>(null)
   const deferredTerm = useDeferredValue(term)
 
@@ -94,11 +110,14 @@ export function NewChatPage() {
   const blockedSet = useBlockedSet(myUid)
   const users = useMemo(() => {
     const source = tab === 'search' ? (searchQuery.data ?? []) : (onlineQuery.data ?? [])
-    return source.filter(
-      (user) =>
-        user.id !== myUid && user.is_registered !== false && !blockedSet.has(user.id),
-    )
-  }, [myUid, onlineQuery.data, searchQuery.data, tab, blockedSet])
+    return source.filter((user) => {
+      if (user.id === myUid) return false
+      if (user.is_registered === false) return false
+      if (blockedSet.has(user.id)) return false
+      if (gender !== 'all' && user.gender !== gender) return false
+      return true
+    })
+  }, [myUid, onlineQuery.data, searchQuery.data, tab, blockedSet, gender])
 
   const uids = useMemo(() => users.map((user) => user.id), [users])
   const avatarsQuery = useAvatars(uids)
@@ -228,6 +247,29 @@ export function NewChatPage() {
             ))}
           </div>
         ) : null}
+
+        {/* Filter gender — sama seperti mobile: Semua / Laki-laki / Perempuan */}
+        <div className="mt-2 flex items-center gap-1.5">
+          {([
+            ['all', 'Semua'],
+            ['male', 'Laki-laki'],
+            ['female', 'Perempuan'],
+          ] as const).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setGender(value)}
+              className={cn(
+                'rounded-full px-2.5 py-1 text-[10.5px] font-medium transition',
+                gender === value
+                  ? 'bg-panel-2 text-text'
+                  : 'text-muted-2 hover:bg-panel hover:text-text',
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
 
         <div className="mt-4 rounded-3xl border border-border bg-surface p-1.5 shadow-sm sm:p-2">
           {tab === 'search' && !canSearch ? (

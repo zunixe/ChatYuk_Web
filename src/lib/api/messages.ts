@@ -139,3 +139,54 @@ export async function toggleReaction(
   if (error && error.code !== '23505') throw error
   return true
 }
+
+/**
+ * Tandai pesan view-once sudah dilihat.
+ * Kontrak sama dengan mobile: UPDATE `type` → `*_once_expired`
+ * (image_data TIDAK dihapus; policy DB mewajibkan hasil akhirnya expired).
+ */
+export async function expireViewOnce(messageId: number | string, kind: 'photo' | 'video'): Promise<void> {
+  const nextType = kind === 'video' ? 'video_once_expired' : 'view_once_expired'
+  const { error } = await supabase
+    .from('private_messages')
+    .update({ type: nextType })
+    .eq('id', messageId)
+  if (error) throw error
+}
+
+/**
+ * Broadcast penanda "sudah dilihat" ke pengirim (best-effort).
+ * Gagal kirim tidak boleh menggagalkan alur UI.
+ */
+export async function announceViewOnceSeen(
+  chatId: string,
+  messageId: number | string,
+  viewerUid: string,
+): Promise<void> {
+  try {
+    const topic = `msg-private_${chatId}`
+    const channel = supabase.channel(topic)
+    await new Promise<void>((resolve) => {
+      let settled = false
+      const done = () => {
+        if (settled) return
+        settled = true
+        resolve()
+      }
+      channel.subscribe((status) => {
+        if (status === 'SUBSCRIBED') done()
+      })
+      setTimeout(done, 2000)
+    })
+    await channel
+      .send({
+        type: 'broadcast',
+        event: 'view_once_seen',
+        payload: { message_id: String(messageId), viewer_id: viewerUid },
+      })
+      .catch(() => undefined)
+    setTimeout(() => void supabase.removeChannel(channel), 1500)
+  } catch {
+    // best-effort
+  }
+}

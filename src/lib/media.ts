@@ -239,3 +239,22 @@ export async function uploadAvatar(uid: string, file: File): Promise<string> {
   if (error) throw error
   return path
 }
+
+/**
+ * URL untuk media view-once. Hanya dipanggil saat pengguna mengetuk
+ * (jangan pernah saat render terkunci, agar aset tidak terunduh).
+ */
+export function mediaUrlForViewOnce(message: Message): string | null {
+  const path = (message.image_path ?? message.image_data ?? '').trim()
+  if (!path) return null
+  // Path storage HARUS dicek lebih dulu: path chat/... sering >80 karakter dan
+  // dulu salah dianggap base64 legacy (menghasilkan data: URL rusak).
+  if (KNOWN_PATH_PREFIXES.some((prefix) => path.startsWith(prefix))) {
+    return storagePublicUrl(path)
+  }
+  if (isDataUrl(path) || isHttpUrl(path) || path.startsWith('blob:')) return path
+  if (/^[A-Za-z0-9+/=\s]+$/.test(path) && path.length > 80) {
+    return `data:image/jpeg;base64,${path}`
+  }
+  return storagePublicUrl(path)
+}

@@ -16,6 +16,8 @@ import {
 import { useMemo, useState } from 'react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { messageImageSrc, storagePublicUrl } from '@/lib/media'
+import { ViewOnceCard } from '@/features/chat/ViewOnceCard'
+import { isViewOnceFamily } from '@/lib/view-once'
 import { formatMessageTime } from '@/lib/time'
 import { cn, messagePreview } from '@/lib/utils'
 import type { Message, Reaction } from '@/lib/types'
@@ -89,7 +91,9 @@ export function MessageBubble({
 }: MessageBubbleProps) {
   const [pickerOpen, setPickerOpen] = useState(false)
   const deleted = message.is_deleted === true
-  const imageSrc = message.type === 'image' || message.type === 'view_once' ? messageImageSrc(message) : null
+  const isViewOnce = isViewOnceFamily(message.type)
+  const imageSrc =
+    message.type === 'image' ? messageImageSrc(message) : null
   const text = (message.text ?? '').trim()
   const structured = STRUCTURED_TYPES.has(message.type)
   const showText = Boolean(text) && !structured
@@ -201,6 +205,8 @@ export function MessageBubble({
             <p className="text-[13px] italic leading-relaxed text-muted-2">
               Pesan ini telah dihapus
             </p>
+          ) : isViewOnce ? (
+            <ViewOnceCard message={message} isMine={isMine} myUid={myUid} />
           ) : imageSrc ? (
             <button
               type="button"
@@ -216,7 +222,7 @@ export function MessageBubble({
                 onLoad={onMediaLoad}
               />
             </button>
-          ) : message.type === 'image' || message.type === 'view_once' ? (
+          ) : message.type === 'image' ? (
             <div className="flex min-h-28 min-w-40 items-center justify-center gap-2 rounded-xl bg-panel text-muted-2">
               <ImageOff className="h-4 w-4" />
               <span className="text-[11px]">Media tidak tersedia</span>

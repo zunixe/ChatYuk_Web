@@ -30,6 +30,10 @@ import {
 import { errorMessage } from '@/lib/errors'
 import { resolveAvatar, uploadAvatar } from '@/lib/media'
 import { isBannedNickname, isValidNickname } from '@/lib/nickname'
+import { needsPeople, replaceExclusions, type PrivacyVisibility } from '@/lib/api/privacy'
+import type { PrivacyKey } from '@/lib/api/profiles'
+import { PrivacyPeoplePicker } from '@/features/settings/PrivacyPeoplePicker'
+import { usePrivacyCandidates } from '@/hooks/usePrivacyCandidates'
 import { markProfileRegistered, updateAccountCredentials } from '@/lib/api/auth'
 import { MAX_AVATAR_BYTES } from '@/lib/constants'
 import { config, envLabel, supabaseHost } from '@/lib/runtime-config'
@@ -77,6 +81,11 @@ export function SettingsPage() {
   })
   const [privacy, setPrivacy] = useState<PrivacySettings>({})
   const [savingPrivacy, setSavingPrivacy] = useState<string | null>(null)
+  const [pickerField, setPickerField] = useState<PrivacyKey | null>(null)
+  const [pickerMode, setPickerMode] = useState<'except' | 'only'>('except')
+  // Nilai visibilitas yang menunggu daftar orang (mis. 'only' / '*_except').
+  const [pendingVisibility, setPendingVisibility] = useState<Record<string, string>>({})
+  const [savingPeople, setSavingPeople] = useState(false)
   const [secureEmail, setSecureEmail] = useState('')
   const [securePassword, setSecurePassword] = useState('')
   const [securing, setSecuring] = useState(false)
@@ -96,6 +105,7 @@ export function SettingsPage() {
   }, [profile?.avatar])
 
   const displayName = profile?.nickname || user?.email || 'Pengguna'
+  const candidates = usePrivacyCandidates(profile?.id)
 
   async function handleProfileSave() {
     if (!profile) return
@@ -157,6 +167,20 @@ export function SettingsPage() {
     key: 'presence' | 'last_seen' | 'profile_photo' | 'about',
     value: string,
   ) {
+    // `only` tanpa daftar orang selalu ditolak server ("only requires at least
+    // one person"). Cegah di klien: buka picker dulu, jangan simpan.
+    if (value === 'only') {
+      const current = privacy.exclusions?.[key]
+      if (!Array.isArray(current) || current.length === 0) {
+        setPickerMode('only')
+        setPickerField(key)
+        setPendingVisibility((pending) => ({ ...pending, [key]: value }))
+        // Cerminkan pilihan di UI supaya dropdown tidak kembali ke nilai lama.
+        setPrivacy((current) => ({ ...current, [key]: value }))
+        toast.info('Pilih minimal satu orang dulu.')
+        return
+      }
+    }
     const previous = privacy[key]
     setPrivacy((current) => ({ ...current, [key]: value }))
     setSavingPrivacy(key)
@@ -168,6 +192,43 @@ export function SettingsPage() {
       toast.error(errorMessage(error))
     } finally {
       setSavingPrivacy(null)
+    }
+    const mode = needsPeople(value as PrivacyVisibility)
+    if (mode) {
+      setPickerMode(mode)
+      setPickerField(key)
+    } else {
+      setPickerField((current) => (current === key ? null : current))
+    }
+  }
+
+  async function savePeople(uids: string[]) {
+    if (!pickerField) return
+    setSavingPeople(true)
+    try {
+      // Simpan daftar orang DULU, baru nilai visibilitasnya. Urutan ini penting:
+      // `only` ditolak server bila belum ada whitelist, dan sebaliknya
+      // `everyone_except` sudah bermakna sejak awal.
+      await replaceExclusions(pickerField, uids)
+      const value = (pendingVisibility[pickerField] ?? privacy[pickerField] ?? 'everyone') as string
+      const shouldApply = value !== 'everyone'
+      if (shouldApply) {
+        await updatePrivacySetting(pickerField, value)
+      }
+      await privacyQuery.refetch()
+      await refreshProfile()
+      setPendingVisibility((pending) => {
+        const next = { ...pending }
+        delete next[pickerField]
+        return next
+      })
+      toast.success(
+        shouldApply ? 'Pengaturan privasi disimpan.' : 'Daftar orang disimpan.',
+      )
+    } catch (error) {
+      toast.error(errorMessage(error))
+    } finally {
+      setSavingPeople(false)
     }
   }
 
@@ -351,29 +412,111 @@ export function SettingsPage() {
             </div>
           ) : (
             <div className="divide-y divide-border/60">
-              {PRIVACY_FIELDS.map((field) => (
-                <div key={field.key} className="flex items-center gap-3 px-5 py-3.5">
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[13px] font-medium text-text">{field.label}</div>
-                    <div className="mt-0.5 text-[11px] text-muted">{field.hint}</div>
+              {PRIVACY_FIELDS.map((field) => {
+                const value = (privacy[field.key] ?? 'everyone') as PrivacyVisibility
+                const mode = needsPeople(value)
+                const excluded = Array.isArray(privacy.exclusions?.[field.key])
+                  ? (privacy.exclusions?.[field.key] as string[])
+                  : []
+                const onlyInvalid = mode === 'only' && excluded.length === 0
+                return (
+                  <div key={field.key} className="px-5 py-3.5">
+                    <div className="flex items-center gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[13px] font-medium text-text">{field.label}</div>
+                        <div className="mt-0.5 text-[11px] text-muted">{field.hint}</div>
+                      </div>
+                      <div className="relative shrink-0">
+                        <select
+                          value={value}
+                          onChange={(event) => void handlePrivacyChange(field.key, event.target.value)}
+                          disabled={savingPrivacy === field.key}
+                          className="h-9 max-w-[150px] appearance-none rounded-lg border border-border bg-surface pl-3 pr-8 text-[12px] text-text outline-none transition focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
+                        >
+                          {PRIVACY_OPTIONS.map(([optionValue, label]) => (
+                            <option key={optionValue} value={optionValue}>
+                              {label}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronRight className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 rotate-90 text-muted-2" />
+                      </div>
+                    </div>
+
+                    {mode || pickerField === field.key ? (
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="h-8 px-2.5 text-[11.5px]"
+                          onClick={() => {
+                            if (pickerField === field.key) {
+                              setPickerField(null)
+                              return
+                            }
+                            setPickerMode(mode ?? 'except')
+                            setPickerField(field.key)
+                          }}
+                        >
+                          {(pickerField === field.key ? pickerMode : mode) === 'only'
+                            ? 'Pilih yang boleh lihat'
+                            : 'Pilih yang dikecualikan'} ({excluded.length})
+                        </Button>
+                        {excluded.length > 0 ? (
+                          <span className="text-[11px] text-muted-2">
+                            {excluded.slice(0, 3).map((uid) => {
+                              const person = candidates.people.find((p) => p.uid === uid)
+                              return person?.nickname ?? 'Pengguna'
+                            }).join(', ')}
+                            {excluded.length > 3 ? ` +${excluded.length - 3}` : ''}
+                          </span>
+                        ) : null}
+                        {onlyInvalid ? (
+                          <span className="text-[11px] font-medium text-danger">
+                            Minimal 1 orang agar pengaturan ini berlaku.
+                          </span>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    <PrivacyPeoplePicker
+                      open={pickerField === field.key}
+                      mode={pickerField === field.key ? pickerMode : (mode ?? 'except')}
+                      people={candidates.people}
+                      selected={excluded}
+                      loading={candidates.isLoading}
+                      onToggle={(uid) => {
+                        const next = excluded.includes(uid)
+                          ? excluded.filter((item) => item !== uid)
+                          : [...excluded, uid]
+                        setPrivacy((current) => ({
+                          ...current,
+                          exclusions: { ...(current.exclusions ?? {}), [field.key]: next },
+                        }))
+                      }}
+                      onClear={() =>
+                        setPrivacy((current) => ({
+                          ...current,
+                          exclusions: { ...(current.exclusions ?? {}), [field.key]: [] },
+                        }))
+                      }
+                      onDone={() => {
+                        void savePeople(
+                          Array.isArray(privacy.exclusions?.[field.key])
+                            ? (privacy.exclusions?.[field.key] as string[])
+                            : [],
+                        )
+                        setPickerField(null)
+                      }}
+                    />
+                    {savingPeople && pickerField === field.key ? (
+                      <div className="mt-1 flex items-center gap-1.5 text-[11px] text-muted">
+                        <Spinner className="h-3 w-3" /> Menyimpan…
+                      </div>
+                    ) : null}
                   </div>
-                  <div className="relative shrink-0">
-                    <select
-                      value={privacy[field.key] ?? 'everyone'}
-                      onChange={(event) => void handlePrivacyChange(field.key, event.target.value)}
-                      disabled={savingPrivacy === field.key}
-                      className="h-9 max-w-[150px] appearance-none rounded-lg border border-border bg-surface pl-3 pr-8 text-[12px] text-text outline-none transition focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
-                    >
-                      {PRIVACY_OPTIONS.map(([value, label]) => (
-                        <option key={value} value={value}>
-                          {label}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronRight className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 rotate-90 text-muted-2" />
-                  </div>
-                </div>
-              ))}
+                )
+              })}
               <div className="flex items-center gap-3 px-5 py-3.5">
                 <div className="min-w-0 flex-1">
                   <div className="text-[13px] font-medium text-text">Laporan dibaca</div>

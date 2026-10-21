@@ -50,7 +50,7 @@ function UserRow({
       disabled={disabled}
       className="group flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition hover:bg-panel disabled:cursor-not-allowed disabled:opacity-60"
     >
-      <Avatar src={avatar} name={user.nickname} size={46} online={isOnline} />
+      <Avatar src={avatar} name={user.nickname} size={46} online={isOnline} gender={user.gender} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="truncate text-[14px] font-medium text-text">{user.nickname}</span>

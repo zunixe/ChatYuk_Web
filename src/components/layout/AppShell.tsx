@@ -129,7 +129,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 className="rounded-full outline-none ring-offset-2 ring-offset-surface transition focus-visible:ring-2 focus-visible:ring-primary/40"
                 aria-label="Menu profil"
               >
-                <Avatar src={selfAvatar} name={displayName} size={40} online={online} />
+                <Avatar src={selfAvatar} name={displayName} size={40} online={online} gender={profile?.gender} />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent side="right" align="end" className="w-60">

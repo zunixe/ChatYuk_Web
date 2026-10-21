@@ -348,7 +348,13 @@ export function ChatPage() {
           onClick={() => setProfileOpen(true)}
           className="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-1 py-1 text-left transition hover:bg-panel/70"
         >
-          <Avatar src={otherAvatar} name={otherName} size={41} online={otherStatus === 'online'} />
+          <Avatar
+            src={otherAvatar}
+            name={otherName}
+            size={41}
+            online={otherStatus === 'online'}
+            gender={otherProfile?.gender}
+          />
           <div className="min-w-0 flex-1">
             <div className="truncate text-[14px] font-semibold text-text">{otherName}</div>
             <div className="mt-0.5 flex h-4 items-center gap-1 text-[10.5px] text-muted">

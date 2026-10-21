@@ -43,7 +43,7 @@ export function ProfileDrawer({ open, onOpenChange, uid, fallbackName }: Profile
           >
             <X className="h-4 w-4" />
           </button>
-          <Avatar src={avatar} name={name} size={104} online={status === 'online'} />
+          <Avatar src={avatar} name={name} size={104} online={status === 'online'} gender={profile?.gender} />
           <h2 className="mt-3 max-w-full truncate font-display text-[19px] font-semibold text-text">
             {name}
           </h2>

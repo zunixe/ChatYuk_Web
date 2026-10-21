@@ -8,9 +8,37 @@ interface AvatarProps {
   online?: boolean
   className?: string
   ring?: boolean
+  /**
+   * Gender user — menentukan warna placeholder inisial, sama seperti
+   * `GenderAvatar` di aplikasi Android:
+   *   male   → biru  #2196F3
+   *   female → pink  #E91E63
+   *   lain   → cyan  #00BCD4 (accent)
+   * Latar = warna gender 15%, teks & ring = warna gender.
+   */
+  gender?: string | null
 }
 
-export function Avatar({ src, name, size = 44, online = false, className, ring = false }: AvatarProps) {
+const GENDER_COLORS: Record<string, string> = {
+  male: '#2196F3',
+  female: '#E91E63',
+}
+const ACCENT_COLOR = '#00BCD4'
+
+function genderColor(gender?: string | null): string {
+  return GENDER_COLORS[(gender ?? '').toLowerCase()] ?? ACCENT_COLOR
+}
+
+export function Avatar({
+  src,
+  name,
+  size = 44,
+  online = false,
+  className,
+  ring = false,
+  gender,
+}: AvatarProps) {
+  const tone = genderColor(gender)
   return (
     <span
       className={cn('relative inline-flex shrink-0', className)}
@@ -33,10 +61,22 @@ export function Avatar({ src, name, size = 44, online = false, className, ring =
         <AvatarPrimitive.Fallback
           delayMs={src ? 300 : 0}
           className={cn(
-            'flex h-full w-full items-center justify-center bg-gradient-to-br font-display font-semibold text-white',
-            avatarGradient(name),
+            'flex h-full w-full items-center justify-center border-[1.5px] font-display font-semibold',
+            // Tanpa gender: perilaku lama (gradien acak, teks putih).
+            !gender && 'bg-gradient-to-br text-white',
+            !gender && avatarGradient(name),
           )}
-          style={{ fontSize: Math.max(11, size * 0.32) }}
+          style={
+            gender
+              ? {
+                  fontSize: Math.max(11, size * 0.32),
+                  // Latar 15% + ring warna gender (identik GenderAvatar Android).
+                  backgroundColor: `color-mix(in srgb, ${tone} 15%, transparent)`,
+                  borderColor: tone,
+                  color: tone,
+                }
+              : { fontSize: Math.max(11, size * 0.32) }
+          }
         >
           {initials(name)}
         </AvatarPrimitive.Fallback>

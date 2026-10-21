@@ -47,7 +47,7 @@ export function ChatListItem({ chat, myUid, avatar, presence }: ChatListItemProp
           {isActive ? (
             <span className="absolute inset-y-2 left-0 w-[3px] rounded-full bg-primary" />
           ) : null}
-          <Avatar src={avatar} name={name} size={48} online={online} />
+          <Avatar src={avatar} name={name} size={48} online={online} gender={otherGender} />
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline gap-2">
               <span className="min-w-0 flex-1 truncate text-[14.5px] font-medium text-text">

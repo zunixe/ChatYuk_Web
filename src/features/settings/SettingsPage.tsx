@@ -405,7 +405,7 @@ export function SettingsPage() {
         <section className="mt-5 overflow-hidden rounded-3xl border border-border bg-surface shadow-sm">
           <div className="flex items-center gap-4 border-b border-border/70 p-5">
             <div className="relative">
-              <Avatar src={avatarPreview} name={displayName} size={68} />
+              <Avatar src={avatarPreview} name={displayName} size={68} gender={profile?.gender} />
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}

@@ -170,7 +170,14 @@ export async function fetchPrivacySettings(): Promise<PrivacySettings> {
   return (data ?? {}) as PrivacySettings
 }
 
-export type PrivacyKey = 'presence' | 'last_seen' | 'profile_photo' | 'about' | 'story'
+export type PrivacyKey =
+  | 'presence'
+  | 'last_seen'
+  | 'profile_photo'
+  | 'about'
+  | 'story'
+  | 'leaderboard'
+  | 'call'
 
 export async function updatePrivacySetting(
   key: PrivacyKey,

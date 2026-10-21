@@ -53,11 +53,16 @@ const PRIVACY_OPTIONS = [
   ['nobody', 'Tidak ada'],
 ] as const
 
-const PRIVACY_FIELDS: Array<{ key: 'presence' | 'last_seen' | 'profile_photo' | 'about'; label: string; hint: string }> = [
+// 7 field — sama dengan aplikasi Android
+// (presence, last_seen, profile_photo, about, story, leaderboard, call).
+const PRIVACY_FIELDS: Array<{ key: PrivacyKey; label: string; hint: string }> = [
   { key: 'presence', label: 'Status online', hint: 'Siapa yang bisa melihat kamu sedang online.' },
   { key: 'last_seen', label: 'Terakhir dilihat', hint: 'Siapa yang bisa melihat waktu terakhir aktif.' },
   { key: 'profile_photo', label: 'Foto profil', hint: 'Siapa yang bisa melihat foto profilmu.' },
   { key: 'about', label: 'Tentang', hint: 'Siapa yang bisa membaca bio singkatmu.' },
+  { key: 'story', label: 'Story', hint: 'Siapa yang bisa melihat story-mu.' },
+  { key: 'leaderboard', label: 'Papan peringkat', hint: 'Siapa yang bisa melihat posisimu di leaderboard.' },
+  { key: 'call', label: 'Panggilan', hint: 'Siapa yang boleh meneleponmu.' },
 ]
 
 export function SettingsPage() {
@@ -194,10 +199,7 @@ export function SettingsPage() {
     }
   }
 
-  async function handlePrivacyChange(
-    key: 'presence' | 'last_seen' | 'profile_photo' | 'about',
-    value: string,
-  ) {
+  async function handlePrivacyChange(key: PrivacyKey, value: string) {
     // `only` tanpa daftar orang selalu ditolak server ("only requires at least
     // one person"). Cegah di klien: buka picker dulu, jangan simpan.
     if (value === 'only') {

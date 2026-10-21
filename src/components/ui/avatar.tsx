@@ -49,6 +49,13 @@ export function Avatar({
           'relative flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-panel',
           ring && 'ring-2 ring-surface',
         )}
+        // Border gender digambar di LUAR Root supaya tidak terpotong
+        // `overflow-hidden` (dulu terasa "keutup"/tidak rata di tepi).
+        style={
+          gender
+            ? { boxShadow: `0 0 0 1.5px ${tone}` }
+            : undefined
+        }
       >
         {src ? (
           <AvatarPrimitive.Image
@@ -61,7 +68,7 @@ export function Avatar({
         <AvatarPrimitive.Fallback
           delayMs={src ? 300 : 0}
           className={cn(
-            'flex h-full w-full items-center justify-center border-[1.5px] font-display font-semibold',
+            'flex h-full w-full items-center justify-center font-display font-semibold',
             // Tanpa gender: perilaku lama (gradien acak, teks putih).
             !gender && 'bg-gradient-to-br text-white',
             !gender && avatarGradient(name),
@@ -70,9 +77,8 @@ export function Avatar({
             gender
               ? {
                   fontSize: Math.max(11, size * 0.32),
-                  // Latar 15% + ring warna gender (identik GenderAvatar Android).
+                  // Latar 15% (sama seperti GenderAvatar Android).
                   backgroundColor: `color-mix(in srgb, ${tone} 15%, transparent)`,
-                  borderColor: tone,
                   color: tone,
                 }
               : { fontSize: Math.max(11, size * 0.32) }

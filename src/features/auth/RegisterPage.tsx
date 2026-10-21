@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input, Label } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/feedback'
 import { errorMessage } from '@/lib/errors'
-import { supabase } from '@/lib/supabase'
+import { signUpWithEmail } from '@/lib/api/auth'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -40,19 +40,9 @@ export function RegisterPage() {
 
     setLoading(true)
     try {
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email: cleanEmail,
-        password,
-        options: {
-          data: { signup_source: 'chatyuk-web' },
-        },
-      })
-      if (signUpError) throw signUpError
-      if (data.session) {
-        navigate('/onboarding', { replace: true })
-      } else {
-        setSentTo(cleanEmail)
-      }
+      const { needsConfirmation } = await signUpWithEmail(cleanEmail, password)
+      if (needsConfirmation) setSentTo(cleanEmail)
+      else navigate('/onboarding', { replace: true })
     } catch (submitError) {
       setError(errorMessage(submitError))
     } finally {

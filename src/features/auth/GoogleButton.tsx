@@ -3,7 +3,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/feedback'
 import { errorMessage } from '@/lib/errors'
-import { supabase } from '@/lib/supabase'
+import { signInWithOAuth } from '@/lib/api/auth'
 
 function GoogleIcon() {
   return (
@@ -34,14 +34,9 @@ export function GoogleButton({ disabled }: { disabled?: boolean }) {
   async function handleGoogle() {
     setLoading(true)
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/chats`,
-          queryParams: { prompt: 'select_account' },
-        },
+      await signInWithOAuth('google', `${window.location.origin}/chats`, {
+        prompt: 'select_account',
       })
-      if (error) throw error
       // Browser diarahkan ke Google; spinner tetap sampai halaman pindah.
     } catch (error) {
       toast.error(errorMessage(error))

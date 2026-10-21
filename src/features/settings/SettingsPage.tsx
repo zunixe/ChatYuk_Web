@@ -30,7 +30,8 @@ import {
 import { errorMessage } from '@/lib/errors'
 import { resolveAvatar, uploadAvatar } from '@/lib/media'
 import { isBannedNickname, isValidNickname } from '@/lib/nickname'
-import { supabase } from '@/lib/supabase'
+import { markProfileRegistered, updateAccountCredentials } from '@/lib/api/auth'
+import { MAX_AVATAR_BYTES } from '@/lib/constants'
 import { config, envLabel, supabaseHost } from '@/lib/runtime-config'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth'
@@ -129,7 +130,7 @@ export function SettingsPage() {
       toast.error('Pilih berkas gambar.')
       return
     }
-    if (file.size > 5 * 1024 * 1024) {
+    if (file.size > MAX_AVATAR_BYTES) {
       toast.error('Ukuran gambar maksimal 5 MB.')
       return
     }
@@ -185,23 +186,14 @@ export function SettingsPage() {
     }
     setSecuring(true)
     try {
-      const { data, error: updateError } = await supabase.auth.updateUser({
-        email: cleanEmail,
-        password: securePassword,
-      })
-      if (updateError) throw updateError
-      const confirmed = Boolean(data.user?.email_confirmed_at || data.user?.confirmed_at)
-      if (!confirmed) {
+      const { emailConfirmed } = await updateAccountCredentials(cleanEmail, securePassword)
+      if (!emailConfirmed) {
         toast.success('Cek email kamu untuk mengonfirmasi akun ini.')
         setSecureEmail('')
         setSecurePassword('')
         return
       }
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ is_registered: true, email: cleanEmail })
-        .eq('id', profile.id)
-      if (profileError) throw profileError
+      await markProfileRegistered(profile.id, cleanEmail)
       await refreshProfile()
       setSecureEmail('')
       setSecurePassword('')

@@ -41,6 +41,11 @@ export function errorMessage(error: unknown): string {
   }
   if (lower.includes('message too long')) return 'Pesan terlalu panjang (maksimal 2000 karakter).'
   if (lower.includes('invalid image data')) return 'File gambar tidak valid.'
-  if (message) return message
+
+  // Detail teknis jangan pernah ditampilkan ke pengguna: pesan PostgREST/GoTrue
+  // bisa memuat nama fungsi, tabel, atau constraint internal. Cukup ke console.
+  if (message) {
+    console.error('[ChatYuk] unhandled error:', { message, code, status })
+  }
   return 'Terjadi kesalahan. Coba lagi.'
 }

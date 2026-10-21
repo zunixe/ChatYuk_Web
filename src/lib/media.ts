@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { isDataUrl, isHttpUrl } from '@/lib/utils'
+import { MAX_FILE_BYTES } from '@/lib/constants'
 import type { Message } from '@/lib/types'
 
 const BUCKET = 'chat-photos'
@@ -121,7 +122,7 @@ function safeExt(fileName: string): string {
 
 /** Upload dokumen chat (maks 50 MB, sama seperti mobile). */
 export async function uploadChatFile(chatId: string, file: File): Promise<string> {
-  if (file.size > 50 * 1024 * 1024) throw new Error('Ukuran file maksimal 50 MB.')
+  if (file.size > MAX_FILE_BYTES) throw new Error('Ukuran file maksimal 50 MB.')
   const path = `chat/${chatId}/${stamp()}_f.${safeExt(file.name)}`
   const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
     contentType: file.type || 'application/octet-stream',

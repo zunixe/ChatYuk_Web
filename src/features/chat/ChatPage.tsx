@@ -18,16 +18,7 @@ import {
   Square,
   X,
 } from 'lucide-react'
-import {
-  Fragment,
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type ChangeEvent,
-  type KeyboardEvent,
-} from 'react'
+import { Fragment, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Avatar } from '@/components/ui/avatar'
@@ -51,38 +42,21 @@ import {
   useReactions,
 } from '@/hooks/useChatData'
 import { useBlockedSet, useSetBlocked } from '@/hooks/useBlocks'
+import { useChatComposer } from '@/hooks/useChatComposer'
+import { useChatScroll } from '@/hooks/useChatScroll'
+import { useMediaSend } from '@/hooks/useMediaSend'
 import { useChatRoomRealtime, useTyping } from '@/hooks/useChatRealtime'
-import { chatDisplayName, chatReadAt, markChatRead, otherParticipant } from '@/lib/api/chats'
+import { chatDisplayName, chatReadAt, otherParticipant } from '@/lib/api/chats'
 import { sendPrivateMessage, toggleReaction } from '@/lib/api/messages'
 import { errorMessage } from '@/lib/errors'
-import {
-  generateVideoPoster,
-  resolveAvatar,
-  uploadChatFile,
-  uploadChatImage,
-  uploadChatVideo,
-  uploadChatVideoPoster,
-  uploadChatVoice,
-} from '@/lib/media'
-import {
-  addOptimisticMessage,
-  failOptimisticMessage,
-  markChatReadInCache,
-  replaceOptimisticMessage,
-  touchChatCache,
-  upsertMessageInCache,
-} from '@/lib/query-cache'
+import { resolveAvatar } from '@/lib/media'
+import { replaceOptimisticMessage } from '@/lib/query-cache'
 import { formatLastSeen, sameDay } from '@/lib/time'
 import { cn, messagePreview } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth'
 import type { Message } from '@/lib/types'
 
 const COMPOSER_EMOJIS = ['😀', '😂', '😊', '😍', '😎', '😢', '😡', '👍', '🙏', '❤️', '🔥', '🎉']
-
-function tempId(): string {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID()
-  return `${Date.now()}-${Math.random().toString(36).slice(2)}`
-}
 
 function senderNameOf(message: Message): string {
   return message.sender_name?.trim() || 'Pengguna'
@@ -110,32 +84,60 @@ export function ChatPage() {
   const setBlocked = useSetBlocked(myUid)
   const otherBlocked = Boolean(otherUid && blockedSet.has(otherUid))
 
-  const [text, setText] = useState('')
-  const [replyTo, setReplyTo] = useState<Message | null>(null)
+  const composer = useChatComposer({
+    chatId,
+    myUid,
+    senderName: authProfile?.nickname ?? 'Pengguna',
+    senderGender: authProfile?.gender ?? '',
+    otherBlocked,
+    onTyping: sendTyping,
+    onStopTyping: stopTyping,
+    onSent: () => scroll.scrollToBottom('smooth'),
+  })
+  const { text, replyTo, setReplyTo, textareaRef, handleTextChange, sendTextMessage, handleKeyDown } =
+    composer
+
+  const scroll = useChatScroll({
+    chatId,
+    messages,
+    myUid,
+    isLoading,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage: () => void fetchNextPage(),
+    isTyping: typingUsers.length > 0,
+  })
+  const { scrollRef, stickRef, showJump, scrollToBottom, handleScroll } = scroll
+
+  const media = useMediaSend({
+    chatId,
+    myUid,
+    senderName: authProfile?.nickname ?? 'Pengguna',
+    senderGender: authProfile?.gender ?? '',
+    otherBlocked,
+    replyTo,
+    clearReply: () => setReplyTo(null),
+    onSent: () => scroll.scrollToBottom('smooth'),
+  })
+  const {
+    fileRef,
+    docRef,
+    videoRef,
+    imageBusy,
+    mediaBusy,
+    recording,
+    recordSecs,
+    handleImageFile,
+    handleDocFile,
+    handleVideoFile,
+    toggleRecording,
+    sendLocation,
+  } = media
+
   const [profileOpen, setProfileOpen] = useState(false)
   const [viewerSrc, setViewerSrc] = useState<string | null>(null)
   const [emojiOpen, setEmojiOpen] = useState(false)
-  const [imageBusy, setImageBusy] = useState(false)
-  const [showJump, setShowJump] = useState(false)
   const [attachOpen, setAttachOpen] = useState(false)
-  const [mediaBusy, setMediaBusy] = useState(false)
-  const [recording, setRecording] = useState(false)
-  const [recordSecs, setRecordSecs] = useState(0)
-
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const fileRef = useRef<HTMLInputElement>(null)
-  const docRef = useRef<HTMLInputElement>(null)
-  const videoRef = useRef<HTMLInputElement>(null)
-  const recorderRef = useRef<MediaRecorder | null>(null)
-  const recorderChunksRef = useRef<Blob[]>([])
-  const recordStartRef = useRef(0)
-  const recordTimerRef = useRef<number | undefined>(undefined)
-  const stickRef = useRef(true)
-  const initializedRef = useRef(false)
-  const pendingOlderRef = useRef(false)
-  const prevScrollHeightRef = useRef(0)
-  const prevCountRef = useRef(0)
 
   const otherName =
     otherProfile?.nickname ||
@@ -154,438 +156,6 @@ export function ChatPage() {
         : otherProfile?.last_seen
           ? formatLastSeen(otherProfile.last_seen)
           : 'offline'
-
-  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'auto') => {
-    const element = scrollRef.current
-    if (!element) return
-    element.scrollTo({ top: element.scrollHeight, behavior })
-    stickRef.current = true
-    setShowJump(false)
-  }, [])
-
-  useEffect(() => {
-    initializedRef.current = false
-    pendingOlderRef.current = false
-    prevCountRef.current = 0
-    stickRef.current = true
-    setText('')
-    setReplyTo(null)
-    setShowJump(false)
-    setProfileOpen(false)
-    setViewerSrc(null)
-  }, [chatId])
-
-  useEffect(() => {
-    if (!chatId || !myUid) return
-    const markRead = () => {
-      if (document.visibilityState !== 'visible') return
-      void markChatRead(chatId, myUid)
-        .then(() => {
-          markChatReadInCache(queryClient, myUid, chatId)
-          void queryClient.invalidateQueries({ queryKey: ['chats', myUid] })
-        })
-        .catch(() => undefined)
-    }
-    markRead()
-    document.addEventListener('visibilitychange', markRead)
-    window.addEventListener('focus', markRead)
-    return () => {
-      document.removeEventListener('visibilitychange', markRead)
-      window.removeEventListener('focus', markRead)
-    }
-  }, [chatId, myUid, queryClient])
-
-  useEffect(() => {
-    document.title = chat ? `${otherName} · ChatYuk` : 'ChatYuk Web'
-    return () => {
-      document.title = 'ChatYuk Web'
-    }
-  }, [chat, otherName])
-
-  useEffect(() => {
-    const element = textareaRef.current
-    if (!element) return
-    element.style.height = '0px'
-    element.style.height = `${Math.min(element.scrollHeight, 144)}px`
-  }, [text])
-
-  useEffect(() => {
-    if (isTyping && stickRef.current) scrollToBottom('smooth')
-  }, [isTyping, scrollToBottom])
-
-  useLayoutEffect(() => {
-    const element = scrollRef.current
-    if (!element || isLoading) return
-    const count = messages.length
-
-    if (!initializedRef.current) {
-      element.scrollTop = element.scrollHeight
-      initializedRef.current = true
-      prevCountRef.current = count
-      return
-    }
-
-    if (pendingOlderRef.current) {
-      const delta = element.scrollHeight - prevScrollHeightRef.current
-      element.scrollTop += Math.max(0, delta)
-      pendingOlderRef.current = false
-      prevCountRef.current = count
-      return
-    }
-
-    const grew = count > prevCountRef.current
-    const last = messages[count - 1]
-    if (stickRef.current) {
-      element.scrollTop = element.scrollHeight
-    } else if (grew && last && last.sender_id !== myUid) {
-      setShowJump(true)
-    }
-    prevCountRef.current = count
-  }, [isLoading, messages, myUid])
-
-  const handleScroll = () => {
-    const element = scrollRef.current
-    if (!element) return
-    const distance = element.scrollHeight - element.scrollTop - element.clientHeight
-    stickRef.current = distance < 150
-    if (distance < 150 && showJump) setShowJump(false)
-    if (element.scrollTop < 70 && hasNextPage && !isFetchingNextPage) {
-      prevScrollHeightRef.current = element.scrollHeight
-      pendingOlderRef.current = true
-      void fetchNextPage()
-    }
-  }
-
-  function handleTextChange(value: string) {
-    setText(value.slice(0, 2000))
-    if (value.trim()) sendTyping()
-    else stopTyping()
-  }
-
-  async function sendTextMessage() {
-    if (!chatId || !myUid || !authProfile) return
-    if (otherBlocked) {
-      toast.error('Kamu memblokir pengguna ini. Buka info kontak untuk membuka blokir.')
-      return
-    }
-    const clean = text.trim()
-    if (!clean) return
-    const temp = tempId()
-    const reply = replyTo
-    const now = new Date().toISOString()
-    const optimistic: Message = {
-      id: -Date.now(),
-      chat_id: chatId,
-      sender_id: myUid,
-      sender_name: authProfile.nickname ?? 'Pengguna',
-      sender_gender: authProfile.gender ?? '',
-      text: clean,
-      type: 'text',
-      replied_to_id: reply?.id ?? null,
-      replied_to_text: reply ? messagePreview(reply) : null,
-      replied_to_sender_name: reply ? senderNameOf(reply) : null,
-      created_at: now,
-      client_status: 'sending',
-      temp_id: temp,
-    }
-
-    stickRef.current = true
-    addOptimisticMessage(queryClient, chatId, optimistic)
-    touchChatCache(queryClient, myUid, chatId, clean, now)
-    setText('')
-    setReplyTo(null)
-    stopTyping()
-    requestAnimationFrame(() => scrollToBottom('smooth'))
-
-    try {
-      const server = await sendPrivateMessage({
-        chatId,
-        senderId: myUid,
-        senderName: authProfile.nickname ?? 'Pengguna',
-        senderGender: authProfile.gender ?? '',
-        text: clean,
-        type: 'text',
-        repliedToId: reply?.id ?? null,
-        repliedToText: reply ? messagePreview(reply) : null,
-        repliedToSenderName: reply ? senderNameOf(reply) : null,
-      })
-      replaceOptimisticMessage(queryClient, chatId, temp, server)
-      void queryClient.invalidateQueries({ queryKey: ['chats', myUid] })
-    } catch (error) {
-      failOptimisticMessage(queryClient, chatId, temp)
-      toast.error(errorMessage(error))
-    }
-  }
-
-  async function handleImageFile(event: ChangeEvent<HTMLInputElement>) {
-    if (otherBlocked) {
-      event.target.value = ''
-      toast.error('Kamu memblokir pengguna ini. Buka info kontak untuk membuka blokir.')
-      return
-    }
-    const file = event.target.files?.[0]
-    if (fileRef.current) fileRef.current.value = ''
-    if (!file || !chatId || !myUid || !authProfile || imageBusy) return
-    if (!file.type.startsWith('image/')) {
-      toast.error('Pilih berkas gambar.')
-      return
-    }
-    if (file.size > 8 * 1024 * 1024) {
-      toast.error('Ukuran gambar maksimal 8 MB.')
-      return
-    }
-
-    const localUrl = URL.createObjectURL(file)
-    const temp = tempId()
-    const now = new Date().toISOString()
-    const caption = text.trim()
-    const reply = replyTo
-    const optimistic: Message = {
-      id: -Date.now(),
-      chat_id: chatId,
-      sender_id: myUid,
-      sender_name: authProfile.nickname ?? 'Pengguna',
-      sender_gender: authProfile.gender ?? '',
-      text: caption,
-      type: 'image',
-      image_data: localUrl,
-      image_path: localUrl,
-      replied_to_id: reply?.id ?? null,
-      replied_to_text: reply ? messagePreview(reply) : null,
-      replied_to_sender_name: reply ? senderNameOf(reply) : null,
-      created_at: now,
-      client_status: 'sending',
-      temp_id: temp,
-    }
-
-    setImageBusy(true)
-    stickRef.current = true
-    addOptimisticMessage(queryClient, chatId, optimistic)
-    touchChatCache(queryClient, myUid, chatId, caption || 'Foto', now)
-    setText('')
-    setReplyTo(null)
-    stopTyping()
-
-    try {
-      const path = await uploadChatImage(chatId, file)
-      const server = await sendPrivateMessage({
-        chatId,
-        senderId: myUid,
-        senderName: authProfile.nickname ?? 'Pengguna',
-        senderGender: authProfile.gender ?? '',
-        text: caption,
-        type: 'image',
-        imagePath: path,
-        repliedToId: reply?.id ?? null,
-        repliedToText: reply ? messagePreview(reply) : null,
-        repliedToSenderName: reply ? senderNameOf(reply) : null,
-      })
-      replaceOptimisticMessage(queryClient, chatId, temp, server)
-      URL.revokeObjectURL(localUrl)
-      void queryClient.invalidateQueries({ queryKey: ['chats', myUid] })
-    } catch (error) {
-      failOptimisticMessage(queryClient, chatId, temp)
-      toast.error(errorMessage(error))
-    } finally {
-      setImageBusy(false)
-    }
-  }
-
-
-  async function sendAttachment(payload: {
-    type: Message['type']
-    text: string
-    imagePath?: string
-    voicePath?: string
-    videoPoster?: string
-    durationMs?: number
-  }) {
-    if (!chatId || !myUid || !authProfile || otherBlocked) return
-    const reply = replyTo
-    try {
-      const server = await sendPrivateMessage({
-        chatId,
-        senderId: myUid,
-        senderName: authProfile.nickname ?? 'Pengguna',
-        senderGender: authProfile.gender ?? '',
-        text: payload.text,
-        type: payload.type,
-        imagePath: payload.imagePath,
-        voicePath: payload.voicePath,
-        videoPoster: payload.videoPoster,
-        durationMs: payload.durationMs,
-        repliedToId: reply?.id ?? null,
-        repliedToText: reply ? messagePreview(reply) : null,
-        repliedToSenderName: reply ? senderNameOf(reply) : null,
-      })
-      upsertMessageInCache(queryClient, chatId, server)
-      setReplyTo(null)
-      stickRef.current = true
-      void queryClient.invalidateQueries({ queryKey: ['chats', myUid] })
-      requestAnimationFrame(() => scrollToBottom('smooth'))
-    } catch (error) {
-      toast.error(errorMessage(error))
-    }
-  }
-
-  async function handleDocFile(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0]
-    if (docRef.current) docRef.current.value = ''
-    if (!file || !chatId) return
-    if (otherBlocked) {
-      toast.error('Kamu memblokir pengguna ini.')
-      return
-    }
-    if (file.size > 50 * 1024 * 1024) {
-      toast.error('Ukuran file maksimal 50 MB.')
-      return
-    }
-    setMediaBusy(true)
-    try {
-      const path = await uploadChatFile(chatId, file)
-      await sendAttachment({ type: 'file', text: file.name, imagePath: path, durationMs: file.size })
-    } catch (error) {
-      toast.error(errorMessage(error))
-    } finally {
-      setMediaBusy(false)
-    }
-  }
-
-  function probeVideoDuration(file: File): Promise<number> {
-    return new Promise((resolve) => {
-      const video = document.createElement('video')
-      const url = URL.createObjectURL(file)
-      video.preload = 'metadata'
-      video.onloadedmetadata = () => {
-        const ms = Number.isFinite(video.duration) ? Math.round(video.duration * 1000) : 0
-        URL.revokeObjectURL(url)
-        resolve(ms)
-      }
-      video.onerror = () => {
-        URL.revokeObjectURL(url)
-        resolve(0)
-      }
-      video.src = url
-    })
-  }
-
-  async function handleVideoFile(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0]
-    if (videoRef.current) videoRef.current.value = ''
-    if (!file || !chatId) return
-    if (otherBlocked) {
-      toast.error('Kamu memblokir pengguna ini.')
-      return
-    }
-    if (!file.type.startsWith('video/')) {
-      toast.error('Pilih berkas video.')
-      return
-    }
-    if (file.size > 25 * 1024 * 1024) {
-      toast.error('Ukuran video maksimal 25 MB.')
-      return
-    }
-    setMediaBusy(true)
-    try {
-      const [path, durationMs, poster] = await Promise.all([
-        uploadChatVideo(chatId, file),
-        probeVideoDuration(file),
-        generateVideoPoster(file).catch(() => null),
-      ])
-      let posterPath: string | undefined
-      if (poster) posterPath = await uploadChatVideoPoster(chatId, poster)
-      await sendAttachment({
-        type: 'video',
-        text: text.trim(),
-        imagePath: path,
-        videoPoster: posterPath,
-        durationMs,
-      })
-      setText('')
-    } catch (error) {
-      toast.error(errorMessage(error))
-    } finally {
-      setMediaBusy(false)
-    }
-  }
-
-  function pickRecorderMime(): string {
-    if (typeof MediaRecorder === 'undefined') return ''
-    for (const mime of ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm']) {
-      if (MediaRecorder.isTypeSupported(mime)) return mime
-    }
-    return ''
-  }
-
-  async function toggleRecording() {
-    if (recording) {
-      recorderRef.current?.stop()
-      return
-    }
-    if (!chatId || otherBlocked) return
-    const mime = pickRecorderMime()
-    if (!navigator.mediaDevices?.getUserMedia || !mime) {
-      toast.error('Browser ini belum mendukung rekaman suara.')
-      return
-    }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const recorder = new MediaRecorder(stream, { mimeType: mime })
-      recorderRef.current = recorder
-      recorderChunksRef.current = []
-      recordStartRef.current = Date.now()
-      setRecordSecs(0)
-      setRecording(true)
-      recordTimerRef.current = window.setInterval(() => {
-        setRecordSecs(Math.floor((Date.now() - recordStartRef.current) / 1000))
-      }, 500)
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) recorderChunksRef.current.push(event.data)
-      }
-      recorder.onstop = () => {
-        stream.getTracks().forEach((track) => track.stop())
-        if (recordTimerRef.current) window.clearInterval(recordTimerRef.current)
-        recordTimerRef.current = undefined
-        setRecording(false)
-        const durationMs = Date.now() - recordStartRef.current
-        const blob = new Blob(recorderChunksRef.current, { type: mime })
-        recorderChunksRef.current = []
-        if (!chatId || blob.size === 0 || durationMs < 600) return
-        setMediaBusy(true)
-        void uploadChatVoice(chatId, blob)
-          .then((path) =>
-            sendAttachment({ type: 'voice', text: '', voicePath: path, durationMs }),
-          )
-          .catch((error) => toast.error(errorMessage(error)))
-          .finally(() => setMediaBusy(false))
-      }
-      recorder.start(250)
-    } catch {
-      toast.error('Tidak bisa mengakses mikrofon.')
-    }
-  }
-
-  function sendLocation() {
-    if (!chatId || otherBlocked) return
-    if (!navigator.geolocation) {
-      toast.error('Perangkat tidak mendukung lokasi.')
-      return
-    }
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const payload = JSON.stringify({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-          label: 'Lokasi saya',
-          caption: '',
-          accuracyM: Math.round(position.coords.accuracy),
-        })
-        void sendAttachment({ type: 'location', text: payload })
-      },
-      () => toast.error('Gagal mengambil lokasi. Izinkan akses lokasi.'),
-      { enableHighAccuracy: true, timeout: 12000 },
-    )
-  }
 
   async function handleReact(message: Message, emoji: string) {
     if (!chatId || !myUid) return
@@ -631,13 +201,6 @@ export function ChatPage() {
   function handleReply(message: Message) {
     setReplyTo(message)
     textareaRef.current?.focus()
-  }
-
-  function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault()
-      void sendTextMessage()
-    }
   }
 
   const groupedReactions = reactionsQuery.byMessage

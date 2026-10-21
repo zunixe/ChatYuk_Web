@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input, Label } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/feedback'
 import { errorMessage } from '@/lib/errors'
-import { supabase } from '@/lib/supabase'
+import { signInWithPassword } from '@/lib/api/auth'
 
 export function LoginPage() {
   const navigate = useNavigate()
@@ -26,11 +26,7 @@ export function LoginPage() {
     }
     setLoading(true)
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      })
-      if (signInError) throw signInError
+      await signInWithPassword(email.trim(), password)
       navigate('/chats', { replace: true })
     } catch (submitError) {
       setError(errorMessage(submitError))

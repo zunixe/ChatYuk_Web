@@ -13,7 +13,7 @@ import { registerProfile } from '@/lib/api/profiles'
 import { errorMessage } from '@/lib/errors'
 import { isBannedNickname, isValidNickname } from '@/lib/nickname'
 import { getCities } from '@/lib/regions'
-import { supabase } from '@/lib/supabase'
+import { signInAnonymously } from '@/lib/api/auth'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth'
 
@@ -64,10 +64,7 @@ export function WelcomePage() {
 
     setLoading(true)
     try {
-      const { error: anonError } = await supabase.auth.signInAnonymously({
-        options: { data: { signup_source: 'chatyuk-web-entry' } },
-      })
-      if (anonError) throw anonError
+      await signInAnonymously('chatyuk-web-entry')
 
       await registerProfile({
         nickname: cleanNickname,

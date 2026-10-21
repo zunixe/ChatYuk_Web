@@ -309,6 +309,40 @@ ssh ... 'cd /data/workspace/chatyuk/supabase && supabase status'
 
 ---
 
+## 8b. Modularitas & keamanan (hasil audit 2026-10-21)
+
+### Struktur setelah refactor
+
+| Sebelum | Sesudah |
+|---|---|
+| `ChatPage.tsx` 1.096 baris (8 tanggung jawab) | **659 baris** — orkestrasi saja |
+| scroll logic di dalam komponen | `hooks/useChatScroll.ts` |
+| teks/reply/send/typing di komponen | `hooks/useChatComposer.ts` |
+| image/file/video/voice/location di komponen | `hooks/useMediaSend.ts` |
+| `regions.ts` 2.229 baris | **13 baris** + `regions.data.json` |
+| 5 file `features/` impor `@/lib/supabase` | `lib/api/auth.ts` (0 kebocoran layer) |
+| batas ukuran tersebar di 4 tempat | `lib/constants.ts` |
+
+### Keamanan
+
+| Item | Status |
+|---|---|
+| RLS `private_messages` (anon) | ✅ `[]` (diblokir) |
+| Kolom sensitif `profiles` | ✅ 401 (column grant) |
+| Insert pesan/profil anon | ✅ 401 `_anon_write_ok` |
+| Upload storage anon | ✅ 403 |
+| XSS sink (`innerHTML`/`eval`) | ✅ tidak ada |
+| `target="_blank"` tanpa `rel` | ✅ tidak ada |
+| Secret di source | ✅ tidak ada (publishable saja) |
+| Bucket `chat-photos` MIME+size | ✅ 50 MB, 21 MIME (migration `20261021010000`) |
+| `errorMessage()` bocor detail server | ✅ diperbaiki (generic + console) |
+
+### Backlog keamanan
+
+- **C3** Sesi di `localStorage` → pertimbangkan cookie httpOnly (ubah backend).
+- **C4** Blokir hanya di klien → perlu trigger/policy server (lintas fitur).
+- **C5** Media publik → lihat `MEDIA_PRIVACY_OPTIONS.md` (opsi Hybrid direkomendasikan).
+
 ## 9. Backup & pemulihan DB lokal
 
 **Wajib sebelum `supabase stop`.** Percobaan `stop --no-backup` + `start`
@@ -367,3 +401,5 @@ Backup terakhir: `/data/workspace/backups/pre-google-dev-1792540007.dump` (1.9 M
 | 2026-10-21 | Perbaikan `presence_for`: `invisible_admin_uid` text kosong → cast uuid gagal (POST 400 di `/rest/v1/rpc/presence_for`). Fungsi live di-replace dari `20261020150000_fix_presence_for_invisible_uid.sql` |
 | 2026-10-21 | Perbaikan `auth.users` seed: kolom token NULL → GoTrue admin API 500 `converting NULL to string` |
 | 2026-10-21 | Fixture test akun dummy (DummyAlpha/DummyBeta) + chat `[TEST]` |
+| 2026-10-21 | Refactor modular: pecah ChatPage → 3 hook, `lib/api/auth.ts`, `lib/constants.ts`, `regions.data.json` |
+| 2026-10-21 | Keamanan: bucket MIME+size limit (C1), `errorMessage` tanpa bocor detail (C2) |

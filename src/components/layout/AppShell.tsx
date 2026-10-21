@@ -43,7 +43,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const setTheme = useUiStore((state) => state.setTheme)
   const online = useOnlineStatus()
 
-  usePresenceHeartbeat(profile?.id)
+  usePresenceHeartbeat(profile?.id, profile?.status)
   useChatListRealtime(profile?.id)
   const chatsQuery = useChats(profile?.id)
   const chats = chatsQuery.data ?? []

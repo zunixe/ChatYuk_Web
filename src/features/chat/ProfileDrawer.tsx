@@ -6,6 +6,7 @@ import { Spinner } from '@/components/ui/feedback'
 import { useAvatars, useOtherProfile } from '@/hooks/useChatData'
 import { useBlockedSet, useSetBlocked } from '@/hooks/useBlocks'
 import { resolveAvatar } from '@/lib/media'
+import { effectiveStatus } from '@/lib/presence'
 import { formatLastSeen } from '@/lib/time'
 import { genderLabel, statusLabel } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth'
@@ -24,7 +25,7 @@ export function ProfileDrawer({ open, onOpenChange, uid, fallbackName }: Profile
   const profile = profileQuery.data
   const avatar = resolveAvatar(profile?.avatar || avatarQuery.data?.[uid ?? ''])
   const name = profile?.nickname || fallbackName
-  const status = profile?.status ?? 'offline'
+  const status = effectiveStatus(profile?.status, profile?.last_seen)
   const myUid = useAuthStore((state) => state.profile?.id)
   const blockedSet = useBlockedSet(myUid)
   const setBlocked = useSetBlocked(myUid)

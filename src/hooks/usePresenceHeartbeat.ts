@@ -4,9 +4,17 @@ import { updatePresence } from '@/lib/api/profiles'
 const HEARTBEAT_MS = 60_000
 const IDLE_AFTER_MS = 4 * 60_000
 
-export function usePresenceHeartbeat(uid: string | undefined): void {
+export function usePresenceHeartbeat(
+  uid: string | undefined,
+  currentStatus?: string | null,
+): void {
+  // Mode `invisible` (fitur berbayar mobile) HARUS tidak pernah ditimpa.
+  // Tanpa guard ini, membuka web membuat user terlihat online lagi.
+  const invisible = currentStatus === 'invisible'
+
   useEffect(() => {
     if (!uid) return
+    if (invisible) return
     let disposed = false
     let lastActivity = Date.now()
     let lastStatus: 'online' | 'idle' | 'offline' = 'offline'

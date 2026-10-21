@@ -18,7 +18,7 @@ import {
   Square,
   X,
 } from 'lucide-react'
-import { Fragment, useState } from 'react'
+import { Fragment, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Avatar } from '@/components/ui/avatar'
@@ -51,6 +51,7 @@ import { sendPrivateMessage, toggleReaction } from '@/lib/api/messages'
 import { errorMessage } from '@/lib/errors'
 import { resolveAvatar } from '@/lib/media'
 import { replaceOptimisticMessage } from '@/lib/query-cache'
+import { effectiveStatus } from '@/lib/presence'
 import { formatLastSeen, sameDay } from '@/lib/time'
 import { cn, messagePreview } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth'
@@ -138,6 +139,7 @@ export function ChatPage() {
   const [viewerSrc, setViewerSrc] = useState<string | null>(null)
   const [emojiOpen, setEmojiOpen] = useState(false)
   const [attachOpen, setAttachOpen] = useState(false)
+  const retryingRef = useRef<Set<string>>(new Set())
 
   const otherName =
     otherProfile?.nickname ||
@@ -145,7 +147,7 @@ export function ChatPage() {
   const otherAvatar = resolveAvatar(otherProfile?.avatar || avatarsQuery.data?.[otherUid ?? ''])
   const otherLastReadAt = chat && otherUid ? chatReadAt(chat, otherUid) : null
   const isTyping = typingUsers.length > 0
-  const otherStatus = otherProfile?.status ?? 'offline'
+  const otherStatus = effectiveStatus(otherProfile?.status, otherProfile?.last_seen)
 
   const statusText = isTyping
     ? 'sedang mengetik…'
@@ -173,11 +175,16 @@ export function ChatPage() {
 
   async function handleRetry(message: Message) {
     if (!chatId || !myUid) return
+    if (!message.temp_id) return
+    if (retryingRef.current.has(message.temp_id)) return
+
+    // Media lokal (blob:) tidak bisa dikirim ulang — objeknya sudah dibuang.
     if (message.image_path?.startsWith('blob:')) {
-      toast.error('Gambar perlu dipilih ulang untuk dikirim.')
+      toast.error('Media perlu dipilih ulang untuk dikirim.')
       return
     }
-    if (!message.temp_id) return
+
+    retryingRef.current.add(message.temp_id)
     try {
       const server = await sendPrivateMessage({
         chatId,
@@ -186,7 +193,12 @@ export function ChatPage() {
         senderGender: message.sender_gender ?? '',
         text: message.text ?? '',
         type: message.type,
+        // Kirim ULANG seluruh field media, bukan hanya imagePath:
+        // voice memakai voice_path, video butuh poster, file butuh ukuran.
         imagePath: message.image_path ?? undefined,
+        voicePath: message.voice_path ?? undefined,
+        videoPoster: message.video_poster ?? undefined,
+        durationMs: message.duration_ms ?? undefined,
         repliedToId: message.replied_to_id ?? null,
         repliedToText: message.replied_to_text ?? null,
         repliedToSenderName: message.replied_to_sender_name ?? null,
@@ -195,6 +207,8 @@ export function ChatPage() {
       toast.success('Pesan terkirim.')
     } catch (error) {
       toast.error(errorMessage(error))
+    } finally {
+      retryingRef.current.delete(message.temp_id)
     }
   }
 

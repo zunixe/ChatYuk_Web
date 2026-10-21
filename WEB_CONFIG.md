@@ -343,6 +343,50 @@ ssh ... 'cd /data/workspace/chatyuk/supabase && supabase status'
 - **C4** Blokir hanya di klien → perlu trigger/policy server (lintas fitur).
 - **C5** Media publik → lihat `MEDIA_PRIVACY_OPTIONS.md` (opsi Hybrid direkomendasikan).
 
+## 8c. Anti-idle / ketahanan server (instabox)
+
+### Kenapa "server mati sendiri"
+
+VM instabox bisa di-**stop/suspend oleh platform** saat dianggap idle
+(lihat `/data/home/MACHINE.md`: *"A stop ends every process"*). Ini **bukan**
+crash aplikasi: `uptime` tetap panjang, tidak ada OOM, `RestartCount` container = 0.
+Yang terlihat "mati" adalah proses yang ikut berhenti saat sandbox di-suspend.
+
+Bukti tambahan: log Caddy hanya berganti PID pada jam tertentu tanpa error
+bind/koneksi — pola khas proses dihentikan dari luar.
+
+### Yang dipasang (systemd, semua `enabled`)
+
+| Unit | Fungsi |
+|---|---|
+| `chatyuk-keepalive.service` | denyut tiap 60 dtk: cek HTTP Caddy + `/auth/v1/health`, query ringan DB, restart service yang mati. `CPUQuota=5%`, `Nice=10` |
+| `chatyuk-supabase.service` | `supabase start`/`stop` otomatis saat VM boot/shutdown (`oneshot`, idempotent) |
+| `chatyuk-web.service` | Caddy `:8080`, `Restart=always` |
+| `ngrok.service` | tunnel publik |
+
+Skrip pendukung:
+- `/usr/local/bin/chatyuk-keepalive.sh` — loop keep-alive, log ke `/tmp/chatyuk-keepalive.log` (maks 2000 baris).
+- `/usr/local/bin/chatyuk-status` — ringkasan status satu perintah.
+
+### Cara cek
+
+```bash
+ssh -p 2222 ... 'chatyuk-status'
+ssh -p 2222 ... 'tail -20 /tmp/chatyuk-keepalive.log'
+```
+
+Log keep-alive menampilkan `web=<kode> auth=<kode> load=<n>` per menit.
+
+### Batasan yang perlu diketahui
+
+1. **Suspend tetap bisa terjadi** bila platform mengabaikan aktivitas ringan.
+   Keep-alive menaikkan peluang tetap hidup, bukan jaminan absolut.
+2. Untuk produksi: pakai selalu-aktif (bukan sandbox) atau `instabox-port`
+   + monitoring eksternal.
+3. `chatyuk-supabase.service` menjalankan `supabase start` saat boot; bila
+   volume DB hilang, stack dibuat ulang **kosong** — karena itu backup rutin
+   tetap wajib (lihat §9).
+
 ## 9. Backup & pemulihan DB lokal
 
 **Wajib sebelum `supabase stop`.** Percobaan `stop --no-backup` + `start`
@@ -403,3 +447,4 @@ Backup terakhir: `/data/workspace/backups/pre-google-dev-1792540007.dump` (1.9 M
 | 2026-10-21 | Fixture test akun dummy (DummyAlpha/DummyBeta) + chat `[TEST]` |
 | 2026-10-21 | Refactor modular: pecah ChatPage → 3 hook, `lib/api/auth.ts`, `lib/constants.ts`, `regions.data.json` |
 | 2026-10-21 | Keamanan: bucket MIME+size limit (C1), `errorMessage` tanpa bocor detail (C2) |
+| 2026-10-21 | Anti-idle: `chatyuk-keepalive.service` + `chatyuk-supabase.service` + `chatyuk-status` |

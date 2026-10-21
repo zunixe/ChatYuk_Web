@@ -6,13 +6,26 @@ export interface CachedMessage extends Message {
   cache_key: string
 }
 
+/** Pesan yang gagal terkirim karena jaringan, disimpan untuk dikirim ulang. */
 export interface OutboxItem {
   id?: number
   chatId: string
   senderId: string
+  senderName: string
+  senderGender: string
   text: string
+  /** Payload media (opsional) — supaya voice/video/file ikut terkirim ulang. */
+  type: string
+  imagePath?: string
+  voicePath?: string
+  videoPoster?: string
+  durationMs?: number
+  repliedToId?: string | number | null
+  repliedToText?: string | null
+  repliedToSenderName?: string | null
   createdAt: string
   attempts: number
+  lastError?: string
 }
 
 class ChatYukDatabase extends Dexie {
@@ -24,6 +37,13 @@ class ChatYukDatabase extends Dexie {
   constructor() {
     super(`chatyuk-web-${config.env}`)
     this.version(1).stores({
+      chats: 'chat_id, last_message_at',
+      messages: 'cache_key, chat_id, created_at',
+      profiles: 'id',
+      outbox: '++id, chat_id, created_at',
+    })
+    // v2: outbox menyimpan payload lengkap (media + reply) & lastError.
+    this.version(2).stores({
       chats: 'chat_id, last_message_at',
       messages: 'cache_key, chat_id, created_at',
       profiles: 'id',

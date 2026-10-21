@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { toast } from 'sonner'
 import { sendPrivateMessage } from '@/lib/api/messages'
+import { enqueueOutbox, isNetworkError } from '@/lib/outbox'
 import { MAX_FILE_BYTES, MAX_IMAGE_BYTES, MAX_VIDEO_BYTES } from '@/lib/constants'
 import { errorMessage } from '@/lib/errors'
 import {
@@ -129,6 +130,31 @@ export function useMediaSend({
       void queryClient.invalidateQueries({ queryKey: ['chats', myUid] })
       onSent()
     } catch (error) {
+      // Media sudah terunggah ke storage tetapi insert gagal → antrekan insert.
+      if (isNetworkError(error) && chatId && myUid) {
+        try {
+          await enqueueOutbox({
+            chatId,
+            senderId: myUid,
+            senderName,
+            senderGender,
+            text: payload.text,
+            type: payload.type,
+            imagePath: payload.imagePath,
+            voicePath: payload.voicePath,
+            videoPoster: payload.videoPoster,
+            durationMs: payload.durationMs,
+            repliedToId: replyTo?.id ?? null,
+            repliedToText: replyTo ? messagePreview(replyTo) : null,
+            repliedToSenderName: replyTo?.sender_name ?? null,
+          })
+          clearReply()
+          toast.info('Tidak ada koneksi. Media akan dikirim otomatis.')
+          return
+        } catch {
+          // lanjut jalur error biasa
+        }
+      }
       toast.error(errorMessage(error))
     }
   }

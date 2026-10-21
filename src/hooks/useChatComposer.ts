@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { sendPrivateMessage } from '@/lib/api/messages'
+import { enqueueOutbox, isNetworkError } from '@/lib/outbox'
 import { errorMessage } from '@/lib/errors'
 import {
   addOptimisticMessage,
@@ -119,6 +120,28 @@ export function useChatComposer({
       onSent()
       return true
     } catch (error) {
+      // Offline: simpan ke antrean agar tidak hilang saat reload, dan kirim
+      // otomatis begitu koneksi kembali (lihat useOutboxFlush).
+      if (isNetworkError(error)) {
+        try {
+          await enqueueOutbox({
+            chatId,
+            senderId: myUid,
+            senderName,
+            senderGender,
+            text: clean,
+            type: 'text',
+            repliedToId: reply?.id ?? null,
+            repliedToText: reply ? messagePreview(reply) : null,
+            repliedToSenderName: reply ? senderNameOf(reply) : null,
+            createdAt: now,
+          })
+          toast.info('Tidak ada koneksi. Pesan akan dikirim otomatis.')
+          return true
+        } catch {
+          // gagal simpan antrean → lanjut ke jalur error biasa
+        }
+      }
       failOptimisticMessage(queryClient, chatId, temp)
       toast.error(errorMessage(error))
       return false

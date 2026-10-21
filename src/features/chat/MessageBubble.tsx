@@ -8,7 +8,6 @@ import {
   ImageOff,
   MapPin,
   Mic,
-  BarChart3,
   Reply,
   RotateCcw,
   SmilePlus,
@@ -17,6 +16,7 @@ import { useMemo, useState } from 'react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { messageImageSrc, storagePublicUrl } from '@/lib/media'
 import { ViewOnceCard } from '@/features/chat/ViewOnceCard'
+import { PollCard } from '@/features/chat/PollCard'
 import { isViewOnceFamily } from '@/lib/view-once'
 import { formatMessageTime } from '@/lib/time'
 import { cn, messagePreview } from '@/lib/utils'
@@ -106,7 +106,6 @@ export function MessageBubble({
   const fileSrc = message.type === 'file' ? mediaUrl(message.image_path) : null
   const stickerSrc = message.type === 'sticker' ? messageImageSrc(message) ?? mediaUrl(message.image_path) : null
   const location = message.type === 'location' ? parseObject(text) : null
-  const poll = message.type === 'poll' ? parseObject(message.poll) ?? parseObject(text) : null
   const contact = message.type === 'contact' ? parseObject(message.contact) ?? parseObject(text) : null
   const failed = message.client_status === 'failed'
   const sending = message.client_status === 'sending'
@@ -307,25 +306,7 @@ export function MessageBubble({
               </span>
             </a>
           ) : message.type === 'poll' ? (
-            <div className="min-w-48 rounded-xl bg-panel/70 p-2.5">
-              <div className="flex items-center gap-1.5 text-[12px] font-medium text-text">
-                <BarChart3 className="h-3.5 w-3.5 text-primary" />
-                {String(poll?.q ?? messagePreview(message))}
-              </div>
-              <ul className="mt-1.5 space-y-1">
-                {(Array.isArray(poll?.o) ? (poll.o as unknown[]) : []).map((option, index) => (
-                  <li
-                    key={`${index}-${String(option)}`}
-                    className="rounded-lg border border-border bg-surface px-2 py-1 text-[11.5px] text-muted"
-                  >
-                    {String(option)}
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-1.5 text-[10px] text-muted-2">
-                {poll?.m === true ? 'Bisa pilih lebih dari satu' : 'Satu pilihan'} · vote dari web belum tersedia
-              </p>
-            </div>
+            <PollCard message={message} disabled={sending} />
           ) : message.type === 'contact' ? (
             <div className="min-w-48 rounded-xl bg-panel/70 p-2.5">
               <div className="text-[12px] font-medium text-text">

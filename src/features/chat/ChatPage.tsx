@@ -45,6 +45,7 @@ import { useBlockedSet, useSetBlocked } from '@/hooks/useBlocks'
 import { useChatComposer } from '@/hooks/useChatComposer'
 import { useChatScroll } from '@/hooks/useChatScroll'
 import { useMediaSend } from '@/hooks/useMediaSend'
+import { useOutboxFlush } from '@/hooks/useOutboxFlush'
 import { useChatRoomRealtime, useTyping } from '@/hooks/useChatRealtime'
 import { chatDisplayName, chatReadAt, otherParticipant } from '@/lib/api/chats'
 import { sendPrivateMessage, toggleReaction } from '@/lib/api/messages'
@@ -109,6 +110,8 @@ export function ChatPage() {
     isTyping: typingUsers.length > 0,
   })
   const { scrollRef, stickRef, showJump, scrollToBottom, handleScroll } = scroll
+
+  const outbox = useOutboxFlush(myUid)
 
   const media = useMediaSend({
     chatId,
@@ -245,6 +248,23 @@ export function ChatPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-bg">
+      {outbox.pending > 0 ? (
+        <div className="flex shrink-0 items-center justify-center gap-2 bg-amber-500/15 px-3 py-1.5 text-[11.5px] font-medium text-amber-700 dark:text-amber-300">
+          <span>
+            {outbox.pending} pesan menunggu koneksi
+            {outbox.flushing ? ' · mengirim…' : ''}
+          </span>
+          {!outbox.flushing ? (
+            <button
+              type="button"
+              onClick={outbox.flushNow}
+              className="rounded-md underline underline-offset-2"
+            >
+              Kirim sekarang
+            </button>
+          ) : null}
+        </div>
+      ) : null}
       <header className="z-20 flex shrink-0 items-center gap-1 border-b border-border bg-surface/95 px-2 pb-2.5 pt-[max(0.55rem,env(safe-area-inset-top))] backdrop-blur sm:px-3 md:pt-2.5">
         <Link
           to="/chats"

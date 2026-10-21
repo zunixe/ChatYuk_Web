@@ -6,6 +6,8 @@ import {
   Download,
   FileText,
   ImageOff,
+  Pencil,
+  Trash2,
   MapPin,
   Mic,
   Reply,
@@ -73,6 +75,8 @@ interface MessageBubbleProps {
   onReply: (message: Message) => void
   onReact: (message: Message, emoji: string) => void
   onRetry: (message: Message) => void
+  onEdit: (message: Message) => void
+  onDelete: (message: Message) => void
   onOpenImage: (src: string) => void
   onMediaLoad: () => void
 }
@@ -86,6 +90,8 @@ export function MessageBubble({
   onReply,
   onReact,
   onRetry,
+  onEdit,
+  onDelete,
   onOpenImage,
   onMediaLoad,
 }: MessageBubbleProps) {
@@ -137,6 +143,28 @@ export function MessageBubble({
       >
         <Reply className="h-3.5 w-3.5" />
       </button>
+      {isMine && message.type === 'text' && !message.client_status ? (
+        <button
+          type="button"
+          onClick={() => onEdit(message)}
+          className="flex h-7 w-7 items-center justify-center rounded-full bg-surface/80 text-muted-2 shadow-sm transition hover:bg-surface hover:text-text"
+          aria-label="Edit pesan"
+          title="Edit"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+        </button>
+      ) : null}
+      {isMine && !message.client_status ? (
+        <button
+          type="button"
+          onClick={() => onDelete(message)}
+          className="flex h-7 w-7 items-center justify-center rounded-full bg-surface/80 text-muted-2 shadow-sm transition hover:bg-danger/10 hover:text-danger"
+          aria-label="Hapus pesan"
+          title="Hapus"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      ) : null}
       <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
         <PopoverTrigger asChild>
           <button

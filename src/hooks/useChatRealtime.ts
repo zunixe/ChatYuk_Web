@@ -10,6 +10,16 @@ import {
 import { supabase } from '@/lib/supabase'
 import type { Chat, Message } from '@/lib/types'
 
+/**
+ * Backoff eksponensial untuk reconnect realtime (maks 30 dtk).
+ * Supabase JS mencoba reconnect sendiri, tetapi setelah gagal berulang
+ * channel perlu dibuat ulang agar tidak diam selamanya.
+ */
+function backoffDelay(attempt: number): number {
+  const base = Math.min(30_000, 1_000 * 2 ** Math.min(attempt, 5))
+  return base + Math.floor(Math.random() * 500)
+}
+
 function randomSuffix(): string {
   return Math.random().toString(36).slice(2, 10)
 }
@@ -20,6 +30,8 @@ export function useChatListRealtime(uid: string | undefined): void {
   useEffect(() => {
     if (!uid) return
     let timer: number | undefined
+    let retryTimer: number | undefined
+    let attempt = 0
     const channel = supabase.channel(`web-chat-list-${uid}-${randomSuffix()}`)
 
     const refresh = () => {
@@ -34,10 +46,27 @@ export function useChatListRealtime(uid: string | undefined): void {
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'private_messages' }, refresh)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'private_chats' }, refresh)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'private_chats' }, refresh)
-      .subscribe()
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          attempt = 0
+          refresh()
+          return
+        }
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          if (retryTimer) return
+          attempt += 1
+          retryTimer = window.setTimeout(() => {
+            retryTimer = undefined
+            void supabase.removeChannel(channel)
+            // refetch sekali agar data tidak basi selama putus
+            refresh()
+          }, backoffDelay(attempt))
+        }
+      })
 
     return () => {
       if (timer) window.clearTimeout(timer)
+      if (retryTimer) window.clearTimeout(retryTimer)
       void supabase.removeChannel(channel)
     }
   }, [queryClient, uid])

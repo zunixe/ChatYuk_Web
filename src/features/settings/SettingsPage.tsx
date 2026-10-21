@@ -30,6 +30,8 @@ import {
 import { errorMessage } from '@/lib/errors'
 import { resolveAvatar, uploadAvatar } from '@/lib/media'
 import { isBannedNickname, isValidNickname } from '@/lib/nickname'
+import { RegionFields } from '@/features/auth/RegionFields'
+import { getCities } from '@/lib/regions'
 import { needsPeople, replaceExclusions, type PrivacyVisibility } from '@/lib/api/privacy'
 import type { PrivacyKey } from '@/lib/api/profiles'
 import { PrivacyPeoplePicker } from '@/features/settings/PrivacyPeoplePicker'
@@ -69,6 +71,12 @@ export function SettingsPage() {
 
   const [nickname, setNickname] = useState(profile?.nickname ?? '')
   const [about, setAbout] = useState(profile?.about ?? '')
+  const [gender, setGender] = useState<string>(profile?.gender ?? 'male')
+  const [age, setAge] = useState<string>(profile?.age ? String(profile.age) : '18')
+  const [country, setCountry] = useState(profile?.country ?? 'Indonesia')
+  const [city, setCity] = useState(
+    profile?.city ?? getCities(profile?.country ?? 'Indonesia')[0] ?? '',
+  )
   const [savingProfile, setSavingProfile] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(resolveAvatar(profile?.avatar))
@@ -101,6 +109,13 @@ export function SettingsPage() {
   }, [profile?.nickname, profile?.about])
 
   useEffect(() => {
+    setGender(profile?.gender ?? 'male')
+    setAge(profile?.age ? String(profile.age) : '18')
+    setCountry(profile?.country ?? 'Indonesia')
+    setCity(profile?.city ?? getCities(profile?.country ?? 'Indonesia')[0] ?? '')
+  }, [profile?.gender, profile?.age, profile?.country, profile?.city])
+
+  useEffect(() => {
     setAvatarPreview(resolveAvatar(profile?.avatar))
   }, [profile?.avatar])
 
@@ -122,9 +137,25 @@ export function SettingsPage() {
       toast.error('Tentang maksimal 160 karakter.')
       return
     }
+    const numericAge = Number.parseInt(age, 10)
+    if (!Number.isFinite(numericAge) || numericAge < 13 || numericAge > 99) {
+      toast.error('Umur harus antara 13 dan 99 tahun.')
+      return
+    }
+    if (!country.trim() || !city.trim()) {
+      toast.error('Negara dan kota wajib diisi.')
+      return
+    }
     setSavingProfile(true)
     try {
-      await updateProfile(profile.id, { nickname: clean, about })
+      await updateProfile(profile.id, {
+        nickname: clean,
+        about,
+        gender,
+        age: numericAge,
+        country,
+        city,
+      })
       await refreshProfile()
       toast.success('Profil diperbarui.')
     } catch (error) {
@@ -372,6 +403,43 @@ export function SettingsPage() {
               />
               <div className="mt-1 text-right text-[10.5px] text-muted-2">{about.length}/160</div>
             </div>
+            <div>
+              <Label>Jenis kelamin</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  ['female', 'Perempuan'],
+                  ['male', 'Laki-laki'],
+                ] as const).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setGender(value)}
+                    disabled={savingProfile}
+                    className={
+                      gender === value
+                        ? 'h-11 rounded-xl border border-primary bg-primary-soft text-[13px] font-medium text-primary'
+                        : 'h-11 rounded-xl border border-border bg-surface text-[13px] font-medium text-muted transition hover:bg-panel'
+                    }
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <RegionFields
+              age={age}
+              country={country}
+              city={city}
+              onAgeChange={setAge}
+              onCountryChange={(value) => {
+                setCountry(value)
+                setCity(getCities(value)[0] ?? '')
+              }}
+              onCityChange={setCity}
+              disabled={savingProfile}
+            />
+
             <div className="flex items-center justify-between gap-3">
               <p className="text-[11px] leading-relaxed text-muted-2">
                 Perubahan nama terlihat oleh teman di daftar chat.

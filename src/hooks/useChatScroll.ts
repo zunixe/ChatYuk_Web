@@ -98,5 +98,23 @@ export function useChatScroll({
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
-  return { scrollRef, stickRef, showJump, setShowJump, scrollToBottom, handleScroll }
+  /** Muat halaman lebih lama tanpa mengubah posisi baca pengguna. */
+  const loadOlder = useCallback(() => {
+    const element = scrollRef.current
+    if (element) {
+      prevScrollHeightRef.current = element.scrollHeight
+      pendingOlderRef.current = true
+    }
+    fetchNextPage()
+  }, [fetchNextPage])
+
+  return {
+    scrollRef,
+    stickRef,
+    showJump,
+    setShowJump,
+    scrollToBottom,
+    handleScroll,
+    loadOlder,
+  }
 }

@@ -136,3 +136,33 @@ export async function unhideChat(chatId: string, uid: string): Promise<void> {
     .eq('chat_id', chatId)
   if (error) throw error
 }
+
+/** Pin / unpin chat untuk diri sendiri (`pinned_by`). */
+export async function setChatPinned(chatId: string, uid: string, pinned: boolean): Promise<void> {
+  const chat = await getChat(chatId)
+  if (!chat) throw new Error('Chat tidak ditemukan.')
+  const current = Array.isArray(chat.pinned_by) ? chat.pinned_by : []
+  const next = pinned
+    ? Array.from(new Set([...current, uid]))
+    : current.filter((value) => value !== uid)
+  const { error } = await supabase
+    .from('private_chats')
+    .update({ pinned_by: next })
+    .eq('chat_id', chatId)
+  if (error) throw error
+}
+
+/** Bisukan / bunyikan chat untuk diri sendiri (`muted_by`). */
+export async function setChatMuted(chatId: string, uid: string, muted: boolean): Promise<void> {
+  const chat = await getChat(chatId)
+  if (!chat) throw new Error('Chat tidak ditemukan.')
+  const current = Array.isArray(chat.muted_by) ? chat.muted_by : []
+  const next = muted
+    ? Array.from(new Set([...current, uid]))
+    : current.filter((value) => value !== uid)
+  const { error } = await supabase
+    .from('private_chats')
+    .update({ muted_by: next })
+    .eq('chat_id', chatId)
+  if (error) throw error
+}

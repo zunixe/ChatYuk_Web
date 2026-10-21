@@ -190,3 +190,24 @@ export async function announceViewOnceSeen(
     // best-effort
   }
 }
+
+/** Edit teks pesan sendiri (mobile: `edited = true`). */
+export async function editPrivateMessage(messageId: number, newText: string): Promise<void> {
+  const text = newText.trim()
+  if (!text) throw new Error('Pesan kosong.')
+  if (text.length > 2000) throw new Error('Message too long (max 2000 chars)')
+  const { error } = await supabase
+    .from('private_messages')
+    .update({ text, edited: true })
+    .eq('id', messageId)
+  if (error) throw error
+}
+
+/** Hapus pesan sendiri (soft delete: `is_deleted = true`). */
+export async function deletePrivateMessage(messageId: number): Promise<void> {
+  const { error } = await supabase
+    .from('private_messages')
+    .update({ is_deleted: true })
+    .eq('id', messageId)
+  if (error) throw error
+}

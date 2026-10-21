@@ -141,11 +141,15 @@ export async function registerProfile(input: RegisterProfileInput): Promise<Prof
 
 export async function updateProfile(
   uid: string,
-  patch: Partial<Pick<Profile, 'nickname' | 'about' | 'avatar'>>,
+  patch: Partial<Pick<Profile, 'nickname' | 'about' | 'avatar' | 'gender' | 'age' | 'country' | 'city'>>,
 ): Promise<void> {
   const payload: Record<string, unknown> = {}
   if (patch.nickname !== undefined) payload.nickname = (patch.nickname ?? '').trim()
   if (patch.about !== undefined) payload.about = (patch.about ?? '').trim()
+  if (patch.gender !== undefined) payload.gender = patch.gender
+  if (patch.age !== undefined) payload.age = patch.age
+  if (patch.country !== undefined) payload.country = (patch.country ?? '').trim()
+  if (patch.city !== undefined) payload.city = (patch.city ?? '').trim()
   if (patch.avatar !== undefined) payload.avatar = patch.avatar
   if (Object.keys(payload).length === 0) return
   const { error } = await supabase.from('profiles').update(payload).eq('id', uid)

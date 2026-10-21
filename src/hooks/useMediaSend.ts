@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { toast } from 'sonner'
 import { sendPrivateMessage } from '@/lib/api/messages'
 import { enqueueOutbox, isNetworkError } from '@/lib/outbox'
-import { MAX_FILE_BYTES, MAX_IMAGE_BYTES, MAX_VIDEO_BYTES } from '@/lib/constants'
+import { MAX_FILE_BYTES, MAX_IMAGE_BYTES, MAX_VIDEO_BYTES, MAX_VIDEO_MS } from '@/lib/constants'
 import { errorMessage } from '@/lib/errors'
 import {
   generateVideoPoster,
@@ -46,12 +46,16 @@ function probeVideoDuration(file: File): Promise<number> {
   })
 }
 
+/**
+ * Rekaman voice HARUS m4a: mobile hanya mengenali `voice/*.m4a`
+ * (`StoragePhotoService.isVoicePath`). Bila browser tidak mendukung, rekam
+ * ditolak — lebih baik jelas daripada mengirim file yang tak terbaca di HP.
+ */
+const VOICE_MIME = 'audio/mp4'
+
 function pickRecorderMime(): string {
   if (typeof MediaRecorder === 'undefined') return ''
-  for (const mime of ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm']) {
-    if (MediaRecorder.isTypeSupported(mime)) return mime
-  }
-  return ''
+  return MediaRecorder.isTypeSupported(VOICE_MIME) ? VOICE_MIME : ''
 }
 
 /** Pengiriman media: gambar, dokumen, video, voice note, lokasi. */
@@ -261,14 +265,19 @@ export function useMediaSend({
       return
     }
     if (file.size > MAX_VIDEO_BYTES) {
-      toast.error('Ukuran video maksimal 25 MB.')
+      toast.error('Ukuran video maksimal 15 MB.')
       return
     }
     setMediaBusy(true)
     try {
-      const [path, durationMs, poster] = await Promise.all([
+      // Durasi diperiksa SEBELUM upload agar tidak membuang kuota.
+      const durationMs = await probeVideoDuration(file)
+      if (durationMs > MAX_VIDEO_MS) {
+        toast.error('Durasi video maksimal 60 detik.')
+        return
+      }
+      const [path, poster] = await Promise.all([
         uploadChatVideo(chatId, file),
-        probeVideoDuration(file),
         generateVideoPoster(file).catch(() => null),
       ])
       let posterPath: string | undefined
@@ -295,7 +304,9 @@ export function useMediaSend({
     if (!chatId || blockedGuard()) return
     const mime = pickRecorderMime()
     if (!navigator.mediaDevices?.getUserMedia || !mime) {
-      toast.error('Browser ini belum mendukung rekaman suara.')
+      toast.error(
+        'Browser ini belum mendukung rekaman suara m4a. Gunakan Chrome/Safari terbaru.',
+      )
       return
     }
     try {

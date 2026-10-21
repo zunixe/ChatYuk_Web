@@ -10,6 +10,9 @@ import {
   MessageCircle,
   Mic,
   MoreVertical,
+  Pin,
+  Bell,
+  BellOff,
   Paperclip,
   SendHorizontal,
   ShieldOff,
@@ -47,11 +50,24 @@ import { useChatScroll } from '@/hooks/useChatScroll'
 import { useMediaSend } from '@/hooks/useMediaSend'
 import { useOutboxFlush } from '@/hooks/useOutboxFlush'
 import { useChatRoomRealtime, useTyping } from '@/hooks/useChatRealtime'
-import { chatDisplayName, chatReadAt, otherParticipant } from '@/lib/api/chats'
-import { sendPrivateMessage, toggleReaction } from '@/lib/api/messages'
+import {
+  chatDisplayName,
+  chatIsMuted,
+  chatIsPinned,
+  chatReadAt,
+  otherParticipant,
+  setChatMuted,
+  setChatPinned,
+} from '@/lib/api/chats'
+import {
+  deletePrivateMessage,
+  editPrivateMessage,
+  sendPrivateMessage,
+  toggleReaction,
+} from '@/lib/api/messages'
 import { errorMessage } from '@/lib/errors'
 import { resolveAvatar } from '@/lib/media'
-import { replaceOptimisticMessage } from '@/lib/query-cache'
+import { replaceOptimisticMessage, upsertMessageInCache } from '@/lib/query-cache'
 import { effectiveStatus } from '@/lib/presence'
 import { formatLastSeen, sameDay } from '@/lib/time'
 import { cn, messagePreview } from '@/lib/utils'
@@ -109,9 +125,35 @@ export function ChatPage() {
     fetchNextPage: () => void fetchNextPage(),
     isTyping: typingUsers.length > 0,
   })
-  const { scrollRef, stickRef, showJump, scrollToBottom, handleScroll } = scroll
+  const { scrollRef, stickRef, showJump, scrollToBottom, handleScroll, loadOlder } = scroll
 
   const outbox = useOutboxFlush(myUid)
+  const pinned = Boolean(chat && myUid && chatIsPinned(chat, myUid))
+  const muted = Boolean(chat && myUid && chatIsMuted(chat, myUid))
+
+  async function togglePin() {
+    if (!chatId || !myUid) return
+    try {
+      await setChatPinned(chatId, myUid, !pinned)
+      void queryClient.invalidateQueries({ queryKey: ['chats', myUid] })
+      void queryClient.invalidateQueries({ queryKey: ['chat', chatId] })
+      toast.success(pinned ? 'Pin dilepas.' : 'Chat disematkan.')
+    } catch (error) {
+      toast.error(errorMessage(error))
+    }
+  }
+
+  async function toggleMute() {
+    if (!chatId || !myUid) return
+    try {
+      await setChatMuted(chatId, myUid, !muted)
+      void queryClient.invalidateQueries({ queryKey: ['chats', myUid] })
+      void queryClient.invalidateQueries({ queryKey: ['chat', chatId] })
+      toast.success(muted ? 'Notifikasi dibunyikan.' : 'Chat dibisukan.')
+    } catch (error) {
+      toast.error(errorMessage(error))
+    }
+  }
 
   const media = useMediaSend({
     chatId,
@@ -220,6 +262,33 @@ export function ChatPage() {
     textareaRef.current?.focus()
   }
 
+  async function handleEdit(message: Message) {
+    if (!chatId) return
+    const next = window.prompt('Edit pesan:', message.text ?? '')
+    if (next == null) return
+    const clean = next.trim()
+    if (!clean || clean === (message.text ?? '').trim()) return
+    try {
+      await editPrivateMessage(message.id, clean)
+      upsertMessageInCache(queryClient, chatId, { ...message, text: clean, edited: true })
+      toast.success('Pesan diperbarui.')
+    } catch (error) {
+      toast.error(errorMessage(error))
+    }
+  }
+
+  async function handleDelete(message: Message) {
+    if (!chatId) return
+    if (!window.confirm('Hapus pesan ini untuk semua orang?')) return
+    try {
+      await deletePrivateMessage(message.id)
+      upsertMessageInCache(queryClient, chatId, { ...message, is_deleted: true, text: '' })
+      toast.success('Pesan dihapus.')
+    } catch (error) {
+      toast.error(errorMessage(error))
+    }
+  }
+
   const groupedReactions = reactionsQuery.byMessage
   const isEmpty = !isLoading && !isError && messages.length === 0
   const chatMissing = !chatQuery.isLoading && !chat
@@ -320,6 +389,14 @@ export function ChatPage() {
                 <Info className="h-4 w-4" />
                 Lihat profil
               </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => void togglePin()}>
+                <Pin className="h-4 w-4" />
+                {pinned ? 'Lepas pin' : 'Sematkan chat'}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => void toggleMute()}>
+                {muted ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
+                {muted ? 'Bunyikan notifikasi' : 'Bisukan chat'}
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link to="/chats">
@@ -351,7 +428,13 @@ export function ChatPage() {
                 {isFetchingNextPage ? (
                   <Spinner className="text-primary" />
                 ) : (
-                  <span className="text-[10px] text-muted-2">Gulir ke atas untuk pesan lama</span>
+                  <button
+                    type="button"
+                    onClick={loadOlder}
+                    className="rounded-full bg-panel px-3 py-1.5 text-[11.5px] font-medium text-muted transition hover:bg-panel-2 hover:text-text"
+                  >
+                    Muat pesan lama
+                  </button>
                 )}
               </div>
             ) : null}
@@ -423,6 +506,8 @@ export function ChatPage() {
                       onReply={handleReply}
                       onReact={(target, emoji) => void handleReact(target, emoji)}
                       onRetry={(target) => void handleRetry(target)}
+                      onEdit={(target) => void handleEdit(target)}
+                      onDelete={(target) => void handleDelete(target)}
                       onOpenImage={setViewerSrc}
                       onMediaLoad={() => {
                         if (stickRef.current) scrollToBottom()

@@ -10,4 +10,5 @@ export function getCities(country: string): string[] {
   return REGIONS[country] ?? []
 }
 
-export const AGES = Array.from({ length: 87 }, (_, index) => index + 13)
+// Sama dengan `profile_form_card.dart` Android: 18–60.
+export const AGES = Array.from({ length: 43 }, (_, index) => index + 18)

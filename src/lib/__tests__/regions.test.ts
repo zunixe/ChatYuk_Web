@@ -28,9 +28,10 @@ describe('regions', () => {
     expect(getCities('')).toEqual([])
   })
 
-  it('age options match mobile (13-99)', () => {
-    expect(AGES).toHaveLength(87)
-    expect(AGES[0]).toBe(13)
-    expect(AGES[AGES.length - 1]).toBe(99)
+  // Android `profile_form_card.dart`: ages = 18..60
+  it('age options match mobile (18-60)', () => {
+    expect(AGES).toHaveLength(43)
+    expect(AGES[0]).toBe(18)
+    expect(AGES[AGES.length - 1]).toBe(60)
   })
 })

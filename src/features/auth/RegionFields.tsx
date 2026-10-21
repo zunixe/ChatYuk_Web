@@ -1,15 +1,19 @@
-import { ChevronDown } from 'lucide-react'
 import { Label } from '@/components/ui/input'
+import { SearchSelect } from '@/components/ui/search-select'
 import { AGES, COUNTRIES, getCities } from '@/lib/regions'
-
-const SELECT_CLASS =
-  'h-11 w-full appearance-none rounded-xl border border-border bg-surface px-3 pr-9 text-[13.5px] text-text outline-none transition focus:border-primary/50 focus:ring-2 focus:ring-primary/10 disabled:opacity-60'
 
 function withCurrent(options: string[], current: string): string[] {
   if (!current || options.includes(current)) return options
   return [current, ...options]
 }
 
+/**
+ * Umur, Negara, dan Kota — semuanya memakai dropdown BER-PENCARIAN,
+ * sama seperti `profile_form_card.dart` di Android (`SearchDropdown`):
+ * - Umur: tanpa field cari (hanya 18–60, sedikit)
+ * - Negara: cari "Cari negara..."
+ * - Kota: cari "Cari kota..."
+ */
 export function RegionFields({
   age,
   country,
@@ -28,68 +32,55 @@ export function RegionFields({
   disabled?: boolean
 }) {
   const cities = withCurrent(getCities(country), city)
+  const ageOptions = AGES.map((value) => String(value))
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-[110px_1fr] gap-3">
         <div>
-          <Label htmlFor="region-age">Umur</Label>
-          <div className="relative">
-            <select
-              id="region-age"
-              value={age}
-              onChange={(event) => onAgeChange(event.target.value)}
-              disabled={disabled}
-              className={SELECT_CLASS}
-            >
-              {AGES.map((value) => (
-                <option key={value} value={String(value)}>
-                  {value}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-2" />
-          </div>
+          <Label htmlFor="region-age" className="sr-only">
+            Umur
+          </Label>
+          <SearchSelect
+            id="region-age"
+            label="Umur"
+            value={age}
+            options={ageOptions}
+            onChange={onAgeChange}
+            searchPlaceholder="Cari umur..."
+            disabled={disabled}
+          />
         </div>
         <div>
-          <Label htmlFor="region-country">Negara</Label>
-          <div className="relative">
-            <select
-              id="region-country"
-              value={country}
-              onChange={(event) => onCountryChange(event.target.value)}
-              disabled={disabled}
-              className={SELECT_CLASS}
-            >
-              {withCurrent(COUNTRIES, country).map((value) => (
-                <option key={value} value={value}>
-                  {value}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-2" />
-          </div>
+          <Label htmlFor="region-country" className="sr-only">
+            Negara
+          </Label>
+          <SearchSelect
+            id="region-country"
+            label="Negara"
+            value={country}
+            options={withCurrent(COUNTRIES, country)}
+            onChange={onCountryChange}
+            searchPlaceholder="Cari negara..."
+            disabled={disabled}
+          />
         </div>
       </div>
 
       <div>
-        <Label htmlFor="region-city">Kota</Label>
-        <div className="relative">
-          <select
-            id="region-city"
-            value={city}
-            onChange={(event) => onCityChange(event.target.value)}
-            disabled={disabled}
-            className={SELECT_CLASS}
-          >
-            {cities.map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-2" />
-        </div>
+        <Label htmlFor="region-city" className="sr-only">
+          Kota
+        </Label>
+        <SearchSelect
+          id="region-city"
+          label="Kota"
+          value={city}
+          options={cities}
+          onChange={onCityChange}
+          searchPlaceholder="Cari kota..."
+          emptyText={cities.length === 0 ? 'Pilih negara dulu' : 'Tidak ditemukan'}
+          disabled={disabled}
+        />
       </div>
     </div>
   )

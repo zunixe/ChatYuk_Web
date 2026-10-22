@@ -350,7 +350,7 @@ ssh ... 'cd /data/workspace/chatyuk/supabase && supabase status'
 | Item | Cara | Status |
 |---|---|---|
 | Blokir dua arah | trigger `enforce_chat_block` (BEFORE INSERT `private_messages`) | ✅ terpasang di DB lokal |
-| Ubah `participants` chat | trigger `check_private_chat_update` | ✅ sudah ada sebelumnya |
+| Ubah `participants` chat | trigger `check_private_chat_update` + policy `WITH CHECK` | ✅ dua lapis |
 | Akses pesan privat | RLS `private_messages_select` (peserta chat) | ✅ |
 | Kolom sensitif profil | column-level grant | ✅ |
 | Upload storage | `storage_object_owner_ok()` (fail-closed per path) | ✅ |
@@ -397,6 +397,8 @@ Cross-Origin-Opener-Policy "same-origin"
 | Bypass via REST API langsung | ✅ `400 {"message":"blocked"}` |
 | Web: banner + tombol kirim mati | ✅ tampil & disabled |
 | Regresi: kirim normal web | ✅ terkirim |
+| Update `private_chats` normal / pin | ✅ lolos (uji JWT asli via browser) |
+| Update oleh non-peserta | ✅ 0 baris terpengaruh (policy `USING`) |
 
 ## 8c. Anti-idle / ketahanan server (instabox)
 

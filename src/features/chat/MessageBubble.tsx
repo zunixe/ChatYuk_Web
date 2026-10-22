@@ -20,6 +20,7 @@ import { messageImageSrc, storagePublicUrl } from '@/lib/media'
 import { ViewOnceCard } from '@/features/chat/ViewOnceCard'
 import { PollCard } from '@/features/chat/PollCard'
 import { isViewOnceFamily } from '@/lib/view-once'
+import { safeMapUrl, safeMediaUrl, safePhoneHref, safePhoneLabel } from '@/lib/url-safety'
 import { formatMessageTime } from '@/lib/time'
 import { cn, messagePreview } from '@/lib/utils'
 import type { Message, Reaction } from '@/lib/types'
@@ -60,8 +61,11 @@ function formatBytes(value: number | null | undefined): string {
 function mediaUrl(path: string | null | undefined): string | null {
   const value = (path ?? '').trim()
   if (!value) return null
-  if (value.startsWith('http') || value.startsWith('data:') || value.startsWith('blob:')) return value
-  return storagePublicUrl(value)
+  // Skema berbahaya (javascript:, file:, data:text/html) ditolak di sini.
+  if (value.startsWith('http') || value.startsWith('data:') || value.startsWith('blob:')) {
+    return safeMediaUrl(value)
+  }
+  return safeMediaUrl(storagePublicUrl(value))
 }
 
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏']
@@ -314,11 +318,7 @@ export function MessageBubble({
             )
           ) : message.type === 'location' ? (
             <a
-              href={
-                location && Number.isFinite(Number(location.lat)) && Number.isFinite(Number(location.lng))
-                  ? `https://maps.google.com/?q=${location.lat},${location.lng}`
-                  : '#'
-              }
+              href={safeMapUrl(location?.lat, location?.lng) ?? '#'}
               target="_blank"
               rel="noreferrer"
               className="flex min-w-48 items-center gap-2 rounded-xl bg-panel/70 px-2.5 py-2 transition hover:bg-panel"
@@ -340,15 +340,20 @@ export function MessageBubble({
               <div className="text-[12px] font-medium text-text">
                 {String(contact?.n ?? contact?.name ?? (text || 'Kontak'))}
               </div>
-              {(Array.isArray(contact?.p) ? (contact.p as unknown[]) : []).map((phone) => (
-                <a
-                  key={String(phone)}
-                  href={`tel:${String(phone)}`}
-                  className="mt-0.5 block text-[11.5px] text-primary underline-offset-2 hover:underline"
-                >
-                  {String(phone)}
-                </a>
-              ))}
+              {(Array.isArray(contact?.p) ? (contact.p as unknown[]) : []).map((phone) => {
+                const href = safePhoneHref(String(phone))
+                const label = safePhoneLabel(String(phone))
+                if (!href || !label) return null
+                return (
+                  <a
+                    key={href}
+                    href={href}
+                    className="mt-0.5 block text-[11.5px] text-primary underline-offset-2 hover:underline"
+                  >
+                    {label}
+                  </a>
+                )
+              })}
               {contact?.t === 'user' ? (
                 <p className="mt-1 text-[10.5px] text-muted-2">Kontak ChatYuk</p>
               ) : null}

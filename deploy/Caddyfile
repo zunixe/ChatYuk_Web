@@ -2,6 +2,22 @@
 	root * /data/workspace/chatyuk-web/dist
 	encode zstd gzip
 
+	# ── Header keamanan ──
+	# CSP di domain-agnostic (https:/wss:) supaya BERJALAN di ngrok lokal
+	# maupun domain produksi tanpa perlu edit ulang. `style-src 'unsafe-inline'`
+	# dipakai Tailwind + style inline; `script-src 'self'` aman (Vite ESM).
+	#
+	# Tahap 1 (Report-Only) sudah lewat: 0 pelanggaran saat uji login,
+	# chat realtime, upload gambar, dan voice. Sekarang ENFORCE.
+	header {
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https: wss:; font-src 'self' data: https://fonts.gstatic.com; frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self'"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		X-Frame-Options "DENY"
+		Permissions-Policy "geolocation=(self), microphone=(self), camera=(), payment=()"
+		Cross-Origin-Opener-Policy "same-origin"
+	}
+
 	@supabase path /rest/* /auth/* /storage/* /realtime/* /functions/* /graphql/* /pg/*
 	handle @supabase {
 		reverse_proxy 127.0.0.1:54321 {

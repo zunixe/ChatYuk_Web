@@ -227,6 +227,16 @@ export const en = {
   'chats.noMessage': 'No messages yet',
   'chats.youPrefix': 'You:',
 
+  // ── Error umum ──
+  'error.blocked': "You can't message this contact.",
+  'error.generic': 'Something went wrong. Please try again.',
+  'error.network': "Can't reach the server. Check your connection.",
+  'error.invalidLogin': 'Wrong email or password.',
+  'error.emailTaken': 'That email is already registered.',
+  'error.tooLong': 'Message is too long (max 2000 characters).',
+  'error.invalidImage': 'That image file is not valid.',
+  'error.rateLimited': 'Too many attempts. Please wait a moment.',
+
   // ── Play badge ──
   'play.getItOn': 'Get it on',
   'play.googlePlay': 'Google Play',
@@ -450,6 +460,15 @@ export const id: Record<TranslationKey, string> = {
   'chats.findFriend': 'Cari teman',
   'chats.noMessage': 'Belum ada pesan',
   'chats.youPrefix': 'Anda:',
+
+  'error.blocked': 'Kamu tidak bisa mengirim pesan ke kontak ini.',
+  'error.generic': 'Terjadi kesalahan. Coba lagi.',
+  'error.network': 'Tidak dapat terhubung ke server. Periksa koneksi internet.',
+  'error.invalidLogin': 'Email atau password salah.',
+  'error.emailTaken': 'Email sudah terdaftar.',
+  'error.tooLong': 'Pesan terlalu panjang (maksimal 2000 karakter).',
+  'error.invalidImage': 'File gambar tidak valid.',
+  'error.rateLimited': 'Terlalu banyak percobaan. Tunggu sebentar lalu coba lagi.',
 
   'play.getItOn': 'Dapatkan di',
   'play.googlePlay': 'Google Play',

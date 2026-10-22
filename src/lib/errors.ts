@@ -1,3 +1,5 @@
+import i18n from '@/lib/i18n'
+
 interface ErrorLike {
   message?: string
   code?: string
@@ -12,40 +14,55 @@ function asErrorLike(error: unknown): ErrorLike {
   return {}
 }
 
+/** Terjemahan dengan fallback aman bila i18n belum siap (mis. unit test). */
+function tr(key: string, fallback: string): string {
+  try {
+    const value = i18n.t(key)
+    return value && value !== key ? value : fallback
+  } catch {
+    return fallback
+  }
+}
+
+/**
+ * Pesan error untuk pengguna.
+ *
+ * TIDAK pernah menampilkan pesan mentah server (bisa membocorkan nama
+ * fungsi/tabel internal). Semua kasus dipetakan ke kalimat aman.
+ */
 export function errorMessage(error: unknown): string {
   const { message = '', code = '', status } = asErrorLike(error)
   const lower = message.toLowerCase()
 
-  if (lower.includes('invalid login credentials')) return 'Email atau password salah.'
+  if (lower.includes('invalid login credentials')) return tr('error.invalidLogin', 'Wrong email or password.')
   if (lower.includes('email not confirmed')) {
-    return 'Email belum dikonfirmasi. Buka tautan verifikasi di inbox kamu.'
+    return tr('error.emailTaken', 'That email is already registered.')
   }
-  if (lower.includes('user already registered')) return 'Email sudah terdaftar. Coba masuk.'
-  if (lower.includes('password should be at least')) return 'Password minimal 6 karakter.'
-  if (lower.includes('unable to validate email')) return 'Format email tidak valid.'
-  if (lower.includes('nickname_banned')) return 'Nickname tersebut tidak diperbolehkan.'
+  if (lower.includes('user already registered')) return tr('error.emailTaken', 'That email is already registered.')
+  if (lower.includes('password should be at least')) return tr('error.tooLong', 'Password is too short.')
+  if (lower.includes('unable to validate email')) return tr('error.emailTaken', 'Invalid email address.')
+  if (lower.includes('nickname_banned')) return tr('error.generic', 'That nickname is not allowed.')
   if (lower.includes('rate limit') || status === 429) {
-    return 'Terlalu banyak percobaan. Tunggu sebentar lalu coba lagi.'
+    return tr('error.rateLimited', 'Too many attempts. Please wait a moment.')
   }
   if (lower.includes('failed to fetch') || lower.includes('networkerror')) {
-    return 'Tidak dapat terhubung ke server. Periksa koneksi internet.'
+    return tr('error.network', "Can't reach the server. Check your connection.")
   }
   if (lower.includes('row-level security') || code === '42501') {
-    return 'Akses ditolak oleh aturan keamanan server.'
+    return tr('error.generic', 'Something went wrong. Please try again.')
   }
   if (lower.includes('duplicate key') || code === '23505') {
-    return 'Data sudah ada.'
+    return tr('error.emailTaken', 'That data already exists.')
   }
-  if (lower.includes('jwt') || lower.includes('token')) {
-    return 'Sesi kamu berakhir. Silakan masuk ulang.'
+  if (lower.includes('message too long')) return tr('error.tooLong', 'Message is too long (max 2000 characters).')
+  // Server menolak pesan karena salah satu pihak saling memblokir.
+  if (lower.includes('blocked')) {
+    return tr('error.blocked', "You can't message this contact.")
   }
-  if (lower.includes('message too long')) return 'Pesan terlalu panjang (maksimal 2000 karakter).'
-  if (lower.includes('invalid image data')) return 'File gambar tidak valid.'
-
-  // Detail teknis jangan pernah ditampilkan ke pengguna: pesan PostgREST/GoTrue
-  // bisa memuat nama fungsi, tabel, atau constraint internal. Cukup ke console.
+  if (lower.includes('invalid image data')) return tr('error.invalidImage', 'That image file is not valid.')
   if (message) {
+    // Detail teknis jangan tampil ke pengguna — cukup log di console.
     console.error('[ChatYuk] unhandled error:', { message, code, status })
   }
-  return 'Terjadi kesalahan. Coba lagi.'
+  return tr('error.generic', 'Something went wrong. Please try again.')
 }

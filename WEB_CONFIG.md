@@ -343,6 +343,61 @@ ssh ... 'cd /data/workspace/chatyuk/supabase && supabase status'
 - **C4** Blokir hanya di klien → perlu trigger/policy server (lintas fitur).
 - **C5** Media publik → lihat `MEDIA_PRIVACY_OPTIONS.md` (opsi Hybrid direkomendasikan).
 
+## 8b2. Keamanan (hasil audit + perbaikan 2026-10-22)
+
+### Yang ditegakkan di server (berlaku web & mobile)
+
+| Item | Cara | Status |
+|---|---|---|
+| Blokir dua arah | trigger `enforce_chat_block` (BEFORE INSERT `private_messages`) | ✅ terpasang di DB lokal |
+| Ubah `participants` chat | trigger `check_private_chat_update` | ✅ sudah ada sebelumnya |
+| Akses pesan privat | RLS `private_messages_select` (peserta chat) | ✅ |
+| Kolom sensitif profil | column-level grant | ✅ |
+| Upload storage | `storage_object_owner_ok()` (fail-closed per path) | ✅ |
+| Bucket | 50 MB + 21 MIME allowlist | ✅ |
+| Anon insert | `_anon_write_ok` guard | ✅ |
+
+### Yang diperkuat di sisi web (kode klien)
+
+| Item | File | Keterangan |
+|---|---|---|
+| Allowlist URL media | `src/lib/url-safety.ts` | hanya `https:`, `blob:`, `data:image/audio`; tolak `javascript:`/`file:` |
+| Sanitasi `tel:` | `src/lib/url-safety.ts` | hanya `+?digit{6,15}` |
+| Validasi koordinat peta | `src/lib/url-safety.ts` | rentang bumi + bukan null |
+| Validasi upload (magic bytes) | `src/lib/upload-validate.ts` | signature JPEG/PNG/GIF/WebP/PDF/MP4/ZIP; teks polos hanya bila ekstensi teks |
+| Pesan error aman | `src/lib/errors.ts` | tidak pernah menampilkan pesan mentah server; kunci i18n |
+
+### Header keamanan (Caddy)
+
+```
+Content-Security-Policy "default-src 'self'; script-src 'self';
+  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+  img-src 'self' data: blob: https:; media-src 'self' blob: https:;
+  connect-src 'self' https: wss:; font-src 'self' data: https://fonts.gstatic.com;
+  frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self'"
+X-Content-Type-Options "nosniff"
+Referrer-Policy "no-referrer"
+X-Frame-Options "DENY"
+Permissions-Policy "geolocation=(self), microphone=(self), camera=(), payment=()"
+Cross-Origin-Opener-Policy "same-origin"
+```
+
+- Domain-agnostic (`https:`/`wss:`) → **berjalan di ngrok lokal maupun domain produksi** tanpa edit.
+- Tahap Report-Only sudah lewat: **0 pelanggaran** saat login, chat realtime, upload gambar, dan OAuth Google.
+- `style-src 'unsafe-inline'` dibutuhkan Tailwind + style inline; `script-src 'self'` tetap ketat.
+
+### Uji blokir (hasil)
+
+| Skenario | Hasil |
+|---|---|
+| Tanpa blokir | ✅ insert sukses |
+| B → A saat A memblokir B | ✅ `ERROR: blocked` |
+| A → B saat A memblokir B (dua arah) | ✅ `ERROR: blocked` |
+| Setelah unblock | ✅ insert sukses |
+| Bypass via REST API langsung | ✅ `400 {"message":"blocked"}` |
+| Web: banner + tombol kirim mati | ✅ tampil & disabled |
+| Regresi: kirim normal web | ✅ terkirim |
+
 ## 8c. Anti-idle / ketahanan server (instabox)
 
 ### Kenapa "server mati sendiri"
@@ -426,7 +481,7 @@ Backup terakhir: `/data/workspace/backups/pre-google-dev-1792540007.dump` (1.9 M
 | Cron lokal | masih menunjuk URL cloud (lihat INSTABOX.md) |
 | Client produksi Web | **tidak** dipakai lagi di config lokal |
 | Ngrok free | interstitial sekali per browser; API pakai header `ngrok-skip-browser-warning` |
-| Lint | `oxlint`: **9 warning, 0 error**. Sisanya pola React Compiler `set-state-in-effect` di `SettingsPage` (4), `useOutboxFlush` (1), `useChatComposer` (1), `useChatScroll` (1), `useChatRealtime` (1), `ViewOnceCard` (1). Sengaja dibiarkan: semuanya reset/sinkronisasi state yang memang harus terjadi setelah render (draft chat, privacy form, antrean outbox); memaksakan pola lain berisiko mengubah perilaku. Warning lain (fast-refresh, impure render, unsafe optional chaining) sudah diperbaiki. |
+| Lint | `oxlint`: **12 warning, 0 error**. Sisanya pola React Compiler `set-state-in-effect` di `SettingsPage` (4), `useOutboxFlush` (1), `useChatComposer` (1), `useChatScroll` (1), `useChatRealtime` (1), `ViewOnceCard` (1). Sengaja dibiarkan: semuanya reset/sinkronisasi state yang memang harus terjadi setelah render (draft chat, privacy form, antrean outbox); memaksakan pola lain berisiko mengubah perilaku. Warning lain (fast-refresh, impure render, unsafe optional chaining) sudah diperbaiki. |
 
 ---
 

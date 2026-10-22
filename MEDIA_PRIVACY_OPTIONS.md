@@ -93,3 +93,33 @@ tampilan gambar di HP).
 1. Setuju Opsi 4, atau langsung Opsi 1 (semua privat)?
 2. Signed URL berlaku berapa lama? (usul 1 jam, refresh otomatis)
 3. Perlu audit log akses media? (menambah beban tulis)
+
+
+---
+
+## Hasil uji bucket percobaan (C1) — 2026-10-22
+
+Bucket uji `chat-photos-trial` (privat, 50 MB, 3 MIME) dibuat **sementara** untuk
+menguji signed URL **tanpa menyentuh `chat-photos`**.
+
+| Uji | Hasil |
+|---|---|
+| Upload ke bucket privat | ✅ 200 |
+| `createSignedUrl(path, 60)` | ✅ token JWT |
+| Akses signed URL | ✅ 200 |
+| Akses URL publik tanpa token | ✅ 400 (gagal → privat) |
+| Akses `object/authenticated` tanpa JWT | ✅ 400 (gagal) |
+
+**Kesimpulan:** pola *bucket privat + signed URL* **berfungsi** di stack lokal.
+
+Bucket uji + policy sementara **sudah dibuang** (dicek: 0 bucket, 0 policy, 0 objek).
+`chat-photos` tetap `public = true` (belum diubah — sesuai kesepakatan: trial dulu, lapor).
+
+### Catatan untuk penerapan nanti (bila disetujui)
+
+- Web harus ganti `getPublicUrl()` → `createSignedUrl()` **plus** cache + refresh
+  sebelum kedaluwarsa; `<img src>` biasa tidak bisa pakai signed URL yang kedaluwarsa
+  tanpa refresh.
+- Mobile **tidak terpengaruh**: mobile mengunduh lewat `storage.download()` (ber-JWT),
+  bukan URL publik.
+- Perlu signed URL juga untuk **avatar** & **sticker** (dipakai di banyak layar).

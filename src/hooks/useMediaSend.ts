@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { toast } from 'sonner'
 import { sendPrivateMessage } from '@/lib/api/messages'
 import { enqueueOutbox, isNetworkError } from '@/lib/outbox'
+import { hasValidMagicBytes, looksLikeExecutable } from '@/lib/upload-validate'
 import { MAX_FILE_BYTES, MAX_IMAGE_BYTES, MAX_VIDEO_BYTES, MAX_VIDEO_MS } from '@/lib/constants'
 import { errorMessage } from '@/lib/errors'
 import {
@@ -98,6 +99,22 @@ export function useMediaSend({
     }
   }, [])
 
+  /**
+   * Validasi file: signature (magic bytes) + nama executable.
+   * `file.type` bisa dipalsukan, jadi signature yang jadi acuan.
+   */
+  async function validateUpload(file: File): Promise<boolean> {
+    if (looksLikeExecutable(file)) {
+      toast.error('Jenis file ini tidak diizinkan.')
+      return false
+    }
+    if (!(await hasValidMagicBytes(file))) {
+      toast.error('File tidak dikenali — isinya bukan gambar/video/audio/dokumen yang valid.')
+      return false
+    }
+    return true
+  }
+
   function blockedGuard(): boolean {
     if (!otherBlocked) return false
     toast.error('Kamu memblokir pengguna ini. Buka info kontak untuk membuka blokir.')
@@ -172,6 +189,7 @@ export function useMediaSend({
       toast.error('Pilih berkas gambar.')
       return
     }
+    if (!(await validateUpload(file))) return
     if (file.size > MAX_IMAGE_BYTES) {
       toast.error('Ukuran gambar maksimal 8 MB.')
       return
@@ -239,6 +257,7 @@ export function useMediaSend({
       toast.error('Ukuran file maksimal 50 MB.')
       return
     }
+    if (!(await validateUpload(file))) return
     setMediaBusy(true)
     try {
       const path = await uploadChatFile(chatId, file)
@@ -264,6 +283,7 @@ export function useMediaSend({
       toast.error('Pilih berkas video.')
       return
     }
+    if (!(await validateUpload(file))) return
     if (file.size > MAX_VIDEO_BYTES) {
       toast.error('Ukuran video maksimal 15 MB.')
       return

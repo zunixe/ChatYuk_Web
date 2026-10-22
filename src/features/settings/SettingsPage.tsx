@@ -31,6 +31,7 @@ import {
 import { errorMessage } from '@/lib/errors'
 import { resolveAvatar, uploadAvatar } from '@/lib/media'
 import { isBannedNickname, isValidNickname } from '@/lib/nickname'
+import { hasValidMagicBytes, looksLikeExecutable } from '@/lib/upload-validate'
 import { RegionFields } from '@/features/auth/RegionFields'
 import { getCities } from '@/lib/regions'
 import { needsPeople, replaceExclusions, type PrivacyVisibility } from '@/lib/api/privacy'
@@ -188,6 +189,10 @@ export function SettingsPage() {
     if (!file || !profile) return
     if (!file.type.startsWith('image/')) {
       toast.error('Pilih berkas gambar.')
+      return
+    }
+    if (looksLikeExecutable(file) || !(await hasValidMagicBytes(file))) {
+      toast.error('File gambar tidak valid.')
       return
     }
     if (file.size > MAX_AVATAR_BYTES) {

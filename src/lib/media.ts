@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase'
 import { isDataUrl, isHttpUrl } from '@/lib/utils'
 import { MAX_FILE_BYTES } from '@/lib/constants'
+import { safeMediaUrl } from '@/lib/url-safety'
 import type { Message } from '@/lib/types'
 
 const BUCKET = 'chat-photos'
@@ -22,7 +23,7 @@ export function storagePublicUrl(path: string): string {
 export function resolveAvatar(value: string | null | undefined): string | null {
   const raw = (value ?? '').trim()
   if (!raw) return null
-  if (isDataUrl(raw) || isHttpUrl(raw)) return raw
+  if (isDataUrl(raw) || isHttpUrl(raw)) return safeMediaUrl(raw)
   if (KNOWN_PATH_PREFIXES.some((prefix) => raw.startsWith(prefix))) {
     return storagePublicUrl(raw)
   }
@@ -39,14 +40,14 @@ export function resolveAvatar(value: string | null | undefined): string | null {
 export function messageImageSrc(message: Message): string | null {
   const path = (message.image_path ?? '').trim()
   if (path) {
-    if (isDataUrl(path) || isHttpUrl(path) || path.startsWith('blob:')) return path
+    if (isDataUrl(path) || isHttpUrl(path) || path.startsWith('blob:')) return safeMediaUrl(path)
     if (path.startsWith('chat/') || /\.(jpe?g|png|webp|gif)$/i.test(path)) {
       return storagePublicUrl(path)
     }
   }
   const inline = (message.image_data ?? '').trim()
   if (!inline) return null
-  if (isDataUrl(inline) || isHttpUrl(inline) || inline.startsWith('blob:')) return inline
+  if (isDataUrl(inline) || isHttpUrl(inline) || inline.startsWith('blob:')) return safeMediaUrl(inline)
   if (inline.length > 80 && !inline.includes(' ')) {
     return `data:image/jpeg;base64,${inline}`
   }
@@ -252,7 +253,7 @@ export function mediaUrlForViewOnce(message: Message): string | null {
   if (KNOWN_PATH_PREFIXES.some((prefix) => path.startsWith(prefix))) {
     return storagePublicUrl(path)
   }
-  if (isDataUrl(path) || isHttpUrl(path) || path.startsWith('blob:')) return path
+  if (isDataUrl(path) || isHttpUrl(path) || path.startsWith('blob:')) return safeMediaUrl(path)
   if (/^[A-Za-z0-9+/=\s]+$/.test(path) && path.length > 80) {
     return `data:image/jpeg;base64,${path}`
   }

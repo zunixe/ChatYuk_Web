@@ -445,6 +445,19 @@ Log keep-alive menampilkan `web=<kode> auth=<kode> load=<n>` per menit.
    volume DB hilang, stack dibuat ulang **kosong** — karena itu backup rutin
    tetap wajib (lihat §9).
 
+## 8d. Privasi media (C1) — status uji
+
+Uji bucket percobaan `chat-photos-trial` (privat, 50 MB, 3 MIME) LULUS:
+upload 200 · signed URL 200 · publik 400 · tanpa token 400.
+
+Bucket uji + policy sementara **sudah dibuang** (0 bucket, 0 policy, 0 objek).
+`chat-photos` **tetap `public = true`** — sesuai kesepakatan: trial dulu, lapor.
+
+Penerapan penuh (ubah web ke signed URL + bucket privat) **belum dieksekusi**
+karena berisiko merusak tampilan gambar di mobile & web sekaligus. Rencana &
+opsi (Hybrid/Full) ada di `MEDIA_PRIVACY_OPTIONS.md`. Kode siap di
+`src/lib/media-signed.ts` (cache + refresh margin 5 menit).
+
 ## 9. Backup & pemulihan DB lokal
 
 **Wajib sebelum `supabase stop`.** Percobaan `stop --no-backup` + `start`
@@ -502,6 +515,8 @@ Backup terakhir: `/data/workspace/backups/pre-google-dev-1792540007.dump` (1.9 M
 | 2026-10-21 | Unit test Vitest (42) mencerminkan test Android |
 | 2026-10-22 | Laporan pengguna (report) — paritas Android; pesan error aman (i18n) |
 | 2026-10-22 | Policy `private_chats_update` + `WITH CHECK` (lapis kedua di samping trigger) |
+| 2026-10-22 | Keamanan: sanitasi URL, magic bytes upload, CSP enforce, header keamanan |
+| 2026-10-22 | Uji media privat (bucket percobaan) LULUS; penerapan penuh ditunda |
 | 2026-10-21 | Perbaikan `presence_for`: `invisible_admin_uid` text kosong → cast uuid gagal (POST 400 di `/rest/v1/rpc/presence_for`). Fungsi live di-replace dari `20261020150000_fix_presence_for_invisible_uid.sql` |
 | 2026-10-21 | Perbaikan `auth.users` seed: kolom token NULL → GoTrue admin API 500 `converting NULL to string` |
 | 2026-10-21 | Fixture test akun dummy (DummyAlpha/DummyBeta) + chat `[TEST]` |

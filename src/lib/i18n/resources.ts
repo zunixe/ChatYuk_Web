@@ -21,6 +21,7 @@ export const en = {
   'common.city': 'City',
   'common.age': 'Age',
   'common.settings': 'Settings',
+  'media.privateNotice': 'Media can only be viewed by chat participants.',
 
   // ── Entry / auth ──
   'auth.tagline': 'Chat, Share, Laugh',
@@ -267,6 +268,7 @@ export const id: Record<TranslationKey, string> = {
   'common.city': 'Kota',
   'common.age': 'Umur',
   'common.settings': 'Pengaturan',
+  'media.privateNotice': 'Media hanya bisa dilihat peserta chat.',
 
   'auth.tagline': 'Ngobrol, Cerita, Ketawa',
   'auth.subtagline': 'Langsung ngobrol, tanpa ribet!',

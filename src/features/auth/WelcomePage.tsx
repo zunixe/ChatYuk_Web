@@ -1,5 +1,5 @@
 import { AlertCircle, ArrowRight, Mail, UserRound } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -15,6 +15,7 @@ import { errorMessage } from '@/lib/errors'
 import { isBannedNickname, isValidNickname } from '@/lib/nickname'
 import { getCities } from '@/lib/regions'
 import { signInAnonymously } from '@/lib/api/auth'
+import { fetchAppSettings } from '@/lib/api/app-settings'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth'
 
@@ -35,9 +36,24 @@ export function WelcomePage() {
   const [city, setCity] = useState(() => getCities('Indonesia')[0] ?? '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [requireRegistration, setRequireRegistration] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    void fetchAppSettings().then((settings) => {
+      if (!cancelled) setRequireRegistration(settings.requireRegistration)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   async function handleStart(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (requireRegistration) {
+      setError('Daftar dengan email atau Google untuk mulai chat.')
+      return
+    }
     setError(null)
 
     const cleanNickname = nickname.trim().replace(/\s+/g, ' ')
@@ -149,7 +165,13 @@ export function WelcomePage() {
           disabled={loading}
         />
 
-        <Button type="submit" size="lg" className="w-full" disabled={loading}>
+        {requireRegistration ? (
+          <p className="rounded-xl bg-warning/10 px-3.5 py-2.5 text-[12px] leading-relaxed text-warning">
+            Pendaftaran wajib aktif. Silakan daftar, atau masuk sebagai tamu lalu hubungkan akun dari
+            Pengaturan.
+          </p>
+        ) : null}
+        <Button type="submit" size="lg" className="w-full" disabled={loading || requireRegistration}>
           {loading ? <Spinner /> : null}
           {loading ? t('auth.preparing') : t('auth.startChat')}
           {!loading ? <ArrowRight className="h-4 w-4" /> : null}

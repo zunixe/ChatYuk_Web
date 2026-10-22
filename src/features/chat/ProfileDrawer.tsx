@@ -1,16 +1,19 @@
-import { Cake, CalendarDays, MapPin, ShieldCheck, ShieldOff, ShieldX, UserRound, X } from 'lucide-react'
+import { Cake, CalendarDays, Flag, MapPin, ShieldCheck, ShieldOff, ShieldX, UserRound, X } from 'lucide-react'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { SideSheet } from '@/components/ui/dialog'
 import { Spinner } from '@/components/ui/feedback'
 import { useAvatars, useOtherProfile } from '@/hooks/useChatData'
 import { useBlockedSet, useSetBlocked } from '@/hooks/useBlocks'
+import { ReportUserDialog } from '@/features/chat/ReportUserDialog'
 import { resolveAvatar } from '@/lib/media'
 import { effectiveStatus } from '@/lib/presence'
 import { formatLastSeen } from '@/lib/time'
 import { genderLabel, statusLabel } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth'
 import { toast } from 'sonner'
+import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface ProfileDrawerProps {
   open: boolean
@@ -20,6 +23,8 @@ interface ProfileDrawerProps {
 }
 
 export function ProfileDrawer({ open, onOpenChange, uid, fallbackName }: ProfileDrawerProps) {
+  const { t } = useTranslation()
+  const [reportOpen, setReportOpen] = useState(false)
   const profileQuery = useOtherProfile(uid)
   const avatarQuery = useAvatars(uid ? [uid] : [])
   const profile = profileQuery.data
@@ -108,12 +113,10 @@ export function ProfileDrawer({ open, onOpenChange, uid, fallbackName }: Profile
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="text-[13px] font-medium text-text">
-                      {blocked ? 'Kamu memblokir kontak ini' : 'Blokir kontak'}
+                      {blocked ? t('contact.blocked') : t('contact.block')}
                     </div>
                     <p className="mt-0.5 text-[11px] leading-relaxed text-muted">
-                      {blocked
-                        ? 'Kamu tidak bisa mengirim pesan sampai blokir dibuka.'
-                        : 'Cegah kontak ini mengirim pesan lewat web maupun aplikasi.'}
+                      {blocked ? t('contact.blockedHint') : t('contact.blockHint')}
                     </p>
                   </div>
                 </div>
@@ -135,18 +138,35 @@ export function ProfileDrawer({ open, onOpenChange, uid, fallbackName }: Profile
                     )
                   }}
                 >
-                  {blocked ? 'Buka blokir' : 'Blokir kontak'}
+                  {blocked ? t('contact.unblock') : t('contact.block')}
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mt-2 w-full text-muted hover:bg-panel hover:text-text"
+                  onClick={() => setReportOpen(true)}
+                >
+                  <Flag className="h-4 w-4" />
+                  {t('contact.report')}
                 </Button>
               </div>
             ) : null}
 
             <div className="mt-4 flex items-start gap-2 rounded-2xl bg-panel px-3.5 py-3 text-[10.5px] leading-relaxed text-muted">
               <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              Sebagian informasi mungkin disembunyikan sesuai pengaturan privasi kontak ini.
+              {t('contact.privacyNote')}
             </div>
           </div>
         )}
       </div>
+      <ReportUserDialog
+        open={reportOpen}
+        onOpenChange={setReportOpen}
+        reporterId={myUid}
+        reportedId={uid}
+        reportedName={name}
+      />
     </SideSheet>
   )
 }

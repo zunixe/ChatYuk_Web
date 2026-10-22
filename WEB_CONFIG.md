@@ -366,6 +366,7 @@ ssh ... 'cd /data/workspace/chatyuk/supabase && supabase status'
 | Validasi koordinat peta | `src/lib/url-safety.ts` | rentang bumi + bukan null |
 | Validasi upload (magic bytes) | `src/lib/upload-validate.ts` | signature JPEG/PNG/GIF/WebP/PDF/MP4/ZIP; teks polos hanya bila ekstensi teks |
 | Pesan error aman | `src/lib/errors.ts` | tidak pernah menampilkan pesan mentah server; kunci i18n |
+| Laporan pengguna | `src/lib/api/reports.ts` | insert ke tabel `reports` (policy `reports_insert_own`), dialog di `ProfileDrawer` — paritas dengan Android |
 
 ### Header keamanan (Caddy)
 
@@ -499,6 +500,8 @@ Backup terakhir: `/data/workspace/backups/pre-google-dev-1792540007.dump` (1.9 M
 | 2026-10-21 | OAuth client dev `ChatYuk Web Dev (ngrok)` — Google login web berhasil |
 | 2026-10-21 | Cache header Caddy (HTML no-cache, asset immutable) |
 | 2026-10-21 | Unit test Vitest (42) mencerminkan test Android |
+| 2026-10-22 | Laporan pengguna (report) — paritas Android; pesan error aman (i18n) |
+| 2026-10-22 | Policy `private_chats_update` + `WITH CHECK` (lapis kedua di samping trigger) |
 | 2026-10-21 | Perbaikan `presence_for`: `invisible_admin_uid` text kosong → cast uuid gagal (POST 400 di `/rest/v1/rpc/presence_for`). Fungsi live di-replace dari `20261020150000_fix_presence_for_invisible_uid.sql` |
 | 2026-10-21 | Perbaikan `auth.users` seed: kolom token NULL → GoTrue admin API 500 `converting NULL to string` |
 | 2026-10-21 | Fixture test akun dummy (DummyAlpha/DummyBeta) + chat `[TEST]` |

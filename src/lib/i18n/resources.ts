@@ -138,6 +138,12 @@ export const en = {
   'contact.blockedHint': "You can't send messages until you unblock.",
   'contact.blockHint': 'Prevent this contact from messaging you on web or app.',
   'contact.unblock': 'Unblock',
+  'contact.report': 'Report user',
+  'contact.reportTitle': 'Report user',
+  'contact.reportHint': 'Reason for report...',
+  'contact.reportSubmit': 'Submit report',
+  'contact.reportSuccess': 'Report submitted',
+  'contact.reportNeedReason': 'Please write a reason.',
 
   // ── Settings ──
   'settings.title': 'Settings',
@@ -374,6 +380,12 @@ export const id: Record<TranslationKey, string> = {
   'contact.blockedHint': 'Kamu tidak bisa mengirim pesan sampai blokir dibuka.',
   'contact.blockHint': 'Cegah kontak ini mengirim pesan lewat web maupun aplikasi.',
   'contact.unblock': 'Buka blokir',
+  'contact.report': 'Laporkan pengguna',
+  'contact.reportTitle': 'Laporkan Pengguna',
+  'contact.reportHint': 'Alasan laporan...',
+  'contact.reportSubmit': 'Kirim Laporan',
+  'contact.reportSuccess': 'Laporan terkirim',
+  'contact.reportNeedReason': 'Alasan laporan wajib diisi.',
 
   'settings.title': 'Pengaturan',
   'settings.subtitle': 'Profil, privasi, dan tampilan aplikasi.',

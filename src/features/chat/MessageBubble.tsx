@@ -17,6 +17,7 @@ import {
 import { useMemo, useState } from 'react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { messageImageSrc, storagePublicUrl } from '@/lib/media'
+import { SafeImage } from '@/components/ui/safe-image'
 import { ViewOnceCard } from '@/features/chat/ViewOnceCard'
 import { PollCard } from '@/features/chat/PollCard'
 import { isViewOnceFamily } from '@/lib/view-once'
@@ -245,7 +246,7 @@ export function MessageBubble({
               className="block max-w-full overflow-hidden rounded-xl bg-panel"
               aria-label="Buka gambar"
             >
-              <img
+              <SafeImage
                 src={imageSrc}
                 alt={text || 'Foto'}
                 className="max-h-[320px] w-auto max-w-full object-contain"
@@ -306,7 +307,7 @@ export function MessageBubble({
             </a>
           ) : message.type === 'sticker' ? (
             stickerSrc ? (
-              <img
+              <SafeImage
                 src={stickerSrc}
                 alt="Stiker"
                 className="h-28 w-28 object-contain"

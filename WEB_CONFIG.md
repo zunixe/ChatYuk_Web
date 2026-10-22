@@ -454,10 +454,19 @@ upload 200 · signed URL 200 · publik 400 · tanpa token 400.
 Bucket uji + policy sementara **sudah dibuang** (0 bucket, 0 policy, 0 objek).
 `chat-photos` **tetap `public = true`** — sesuai kesepakatan: trial dulu, lapor.
 
-Penerapan penuh (ubah web ke signed URL + bucket privat) **belum dieksekusi**
-karena berisiko merusak tampilan gambar di mobile & web sekaligus. Rencana &
-opsi (Hybrid/Full) ada di `MEDIA_PRIVACY_OPTIONS.md`. Kode siap di
-`src/lib/media-signed.ts` (cache + refresh margin 5 menit).
+**Mitigasi sudah terpasang & teruji:** `SafeImage` (`src/components/ui/safe-image.tsx`)
+dan `Avatar` otomatis beralih ke **signed URL** bila URL publik ditolak.
+
+Uji simulasi (bucket `chat-photos` di-set `public=false` sementara):
+- Tanpa cache → URL publik 400 → gambar **berhasil** dirender via signed URL ✅
+- Bucket dikembalikan `public=true` → perilaku normal kembali ✅
+- **Android aman**: mobile tidak memakai `getPublicUrl` sama sekali; semua
+  media diambil via `storage.download(path)` ber-JWT (terverifikasi di
+  `storage_photo_service.dart`, `avatar_service.dart`, `message_image.dart`,
+  `view_once_image.dart`, `story_service.dart`, `room_icon.dart`).
+
+Artinya: bucket boleh dijadikan privat **kapan pun** tanpa merusak web
+(otomatis signed URL) maupun Android. Kode tambahan: `src/lib/media-signed.ts`.
 
 ## 9. Backup & pemulihan DB lokal
 
@@ -519,6 +528,7 @@ Backup terakhir: `/data/workspace/backups/pre-google-dev-1792540007.dump` (1.9 M
 | 2026-10-22 | Keamanan: sanitasi URL, magic bytes upload, CSP enforce, header keamanan |
 | 2026-10-22 | Uji media privat (bucket percobaan) LULUS; penerapan penuh ditunda |
 | 2026-10-22 | Gate `require_registration` di web: tombol tamu dinonaktifkan bila aktif. Android tidak disentuh |
+| 2026-10-22 | Fallback media: web auto signed URL saat URL publik ditolak (uji bucket privat PASS). Android tidak memakai URL publik — aman |
 | 2026-10-21 | Perbaikan `presence_for`: `invisible_admin_uid` text kosong → cast uuid gagal (POST 400 di `/rest/v1/rpc/presence_for`). Fungsi live di-replace dari `20261020150000_fix_presence_for_invisible_uid.sql` |
 | 2026-10-21 | Perbaikan `auth.users` seed: kolom token NULL → GoTrue admin API 500 `converting NULL to string` |
 | 2026-10-21 | Fixture test akun dummy (DummyAlpha/DummyBeta) + chat `[TEST]` |

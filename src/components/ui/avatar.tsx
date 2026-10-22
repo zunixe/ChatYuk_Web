@@ -1,4 +1,6 @@
 import * as AvatarPrimitive from '@radix-ui/react-avatar'
+import { useState } from 'react'
+import { supabase } from '@/lib/supabase'
 import { cn, avatarGradient, initials } from '@/lib/utils'
 
 interface AvatarProps {
@@ -29,6 +31,15 @@ function genderColor(gender?: string | null): string {
   return GENDER_COLORS[(gender ?? '').toLowerCase()] ?? ACCENT_COLOR
 }
 
+const BUCKET = 'chat-photos'
+
+function avatarStoragePath(url: string | null | undefined): string | null {
+  const marker = `/storage/v1/object/public/${BUCKET}/`
+  const index = (url ?? '').indexOf(marker)
+  if (index < 0) return null
+  return decodeURIComponent((url ?? '').slice(index + marker.length).split('?')[0] ?? '')
+}
+
 export function Avatar({
   src,
   name,
@@ -39,6 +50,30 @@ export function Avatar({
   gender,
 }: AvatarProps) {
   const tone = genderColor(gender)
+  const [currentSrc, setCurrentSrc] = useState(src ?? undefined)
+  const [trackedSrc, setTrackedSrc] = useState(src)
+  const [retried, setRetried] = useState(false)
+
+  // Reset saat prop `src` berubah (pola render-time, bukan effect).
+  if (trackedSrc !== src) {
+    setTrackedSrc(src)
+    setCurrentSrc(src ?? undefined)
+    setRetried(false)
+  }
+
+  function handleStatus(status: 'idle' | 'loading' | 'loaded' | 'error') {
+    if (status !== 'error') return
+    const path = avatarStoragePath(currentSrc)
+    if (retried || !path) return
+    setRetried(true)
+    void supabase.storage
+      .from(BUCKET)
+      .createSignedUrl(path, 3600)
+      .then(({ data }) => {
+        if (data?.signedUrl) setCurrentSrc(data.signedUrl)
+      })
+  }
+
   return (
     <span
       className={cn('relative inline-flex shrink-0', className)}
@@ -59,10 +94,11 @@ export function Avatar({
       >
         {src ? (
           <AvatarPrimitive.Image
-            src={src}
+            src={currentSrc}
             alt={name}
             className="h-full w-full object-cover"
             loading="lazy"
+            onLoadingStatusChange={handleStatus}
           />
         ) : null}
         <AvatarPrimitive.Fallback

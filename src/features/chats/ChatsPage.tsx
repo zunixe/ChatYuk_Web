@@ -1,4 +1,4 @@
-import { MessageCircle, Plus, RefreshCw, Search, Settings, X } from 'lucide-react'
+import { MessageCircle, Plus, RefreshCw, Search, Settings, Users, X } from 'lucide-react'
 import { useDeferredValue, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
@@ -76,6 +76,14 @@ export function ChatsPage() {
           title={t('online.title')}
         >
           <Plus className="h-5 w-5" />
+        </Link>
+        <Link
+          to="/groups"
+          className="flex h-10 w-10 items-center justify-center rounded-xl text-muted transition hover:bg-panel hover:text-text"
+          aria-label={t('groups.title')}
+          title={t('groups.title')}
+        >
+          <Users className="h-5 w-5" />
         </Link>
         <Link
           to="/settings"

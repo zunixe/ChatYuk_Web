@@ -367,6 +367,7 @@ ssh ... 'cd /data/workspace/chatyuk/supabase && supabase status'
 | Validasi upload (magic bytes) | `src/lib/upload-validate.ts` | signature JPEG/PNG/GIF/WebP/PDF/MP4/ZIP; teks polos hanya bila ekstensi teks |
 | Pesan error aman | `src/lib/errors.ts` | tidak pernah menampilkan pesan mentah server; kunci i18n |
 | Laporan pengguna | `src/lib/api/reports.ts` | insert ke tabel `reports` (policy `reports_insert_own`), dialog di `ProfileDrawer` — paritas dengan Android |
+| Grup (room privat) | `src/lib/api/groups.ts` | baca `messages` langsung (bukan `get_room_messages`); join gratis; poin via `coin_ledger` append-only |
 | Gate pendaftaran | `src/lib/api/app-settings.ts` | `require_registration` dibaca dari `app_settings`; default `false` saat gagal |
 
 ### Header keamanan (Caddy)
@@ -528,6 +529,7 @@ Backup terakhir: `/data/workspace/backups/pre-google-dev-1792540007.dump` (1.9 M
 | 2026-10-22 | Keamanan: sanitasi URL, magic bytes upload, CSP enforce, header keamanan |
 | 2026-10-22 | Uji media privat (bucket percobaan) LULUS; penerapan penuh ditunda |
 | 2026-10-22 | Gate `require_registration` di web: tombol tamu dinonaktifkan bila aktif. Android tidak disentuh |
+| 2026-10-23 | Grup di web: list, explore, join, chat teks, realtime. Join server GRATIS (jangan tampilkan `join_paid`) |
 | 2026-10-22 | Fallback media: web auto signed URL saat URL publik ditolak (uji bucket privat PASS). Android tidak memakai URL publik — aman |
 | 2026-10-21 | Perbaikan `presence_for`: `invisible_admin_uid` text kosong → cast uuid gagal (POST 400 di `/rest/v1/rpc/presence_for`). Fungsi live di-replace dari `20261020150000_fix_presence_for_invisible_uid.sql` |
 | 2026-10-21 | Perbaikan `auth.users` seed: kolom token NULL → GoTrue admin API 500 `converting NULL to string` |

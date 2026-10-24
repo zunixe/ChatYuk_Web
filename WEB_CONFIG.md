@@ -490,6 +490,12 @@ Uji simulasi (bucket `chat-photos` di-set `public=false` sementara):
 Artinya: bucket boleh dijadikan privat **kapan pun** tanpa merusak web
 (otomatis signed URL) maupun Android. Kode tambahan: `src/lib/media-signed.ts`.
 
+**Status: bucket `chat-photos` SUDAH privat (`public=false`).** Web memakai
+`SafeImage`/`Avatar` yang otomatis signed URL. Mode privat diingat di
+`localStorage('chatyuk-media-private')` (`src/lib/media-mode.ts`) supaya
+media berikutnya langsung signed — tidak ada lagi 400 berulang di console.
+Terverifikasi: gambar tampil (naturalWidth 120) via `token=...`, 0 error console.
+
 ## 9. Backup & pemulihan DB lokal
 
 **Wajib sebelum `supabase stop`.** Percobaan `stop --no-backup` + `start`

@@ -1,5 +1,6 @@
-import { useState, type ComponentProps } from 'react'
+import { useEffect, useState, type ComponentProps } from 'react'
 import { supabase } from '@/lib/supabase'
+import { isStoragePrivate, markStoragePrivate, markStoragePublic } from '@/lib/media-mode'
 
 const BUCKET = 'chat-photos'
 
@@ -17,26 +18,44 @@ async function signedUrlFor(path: string): Promise<string | null> {
   return data.signedUrl
 }
 
+function looksLikePublicStorageUrl(url: string): boolean {
+  return url.includes(`/storage/v1/object/public/${BUCKET}/`)
+}
+
 /**
- * `<img>` dengan penguatan privasi:
+ * `<img>` dengan penguatan privasi.
  *
- * Bila URL publik `chat-photos` ditolak (bucket kelak dibuat privat),
- * gambar otomatis memakai signed URL. Selama bucket masih publik,
- * perilaku sama sekali tidak berubah (tanpa request tambahan).
+ * Bucket `chat-photos` privat → URL publik 400 → komponen otomatis beralih
+ * ke signed URL. Kegagalan pertama diingat (`media-mode`) sehingga media
+ * berikutnya langsung signed, tanpa 400 berulang di console.
  *
  * Android tidak terpengaruh: mobile memakai `storage.download()` ber-JWT.
  */
+function initialSrc(src: string | undefined): string | undefined {
+  // Mode privat sudah diketahui → jangan render URL publik (menghindari 400).
+  if (src && isStoragePrivate() && looksLikePublicStorageUrl(src)) return undefined
+  return src
+}
+
 export function SafeImage({ src, onError, ...props }: ComponentProps<'img'>) {
-  const [currentSrc, setCurrentSrc] = useState<string | undefined>(src)
+  const [currentSrc, setCurrentSrc] = useState<string | undefined>(() => initialSrc(src))
   const [trackedSrc, setTrackedSrc] = useState(src)
-  const [retried, setRetried] = useState(false)
 
   // Reset saat prop `src` berubah (pola render-time, bukan effect).
   if (trackedSrc !== src) {
     setTrackedSrc(src)
-    setCurrentSrc(src)
-    setRetried(false)
+    setCurrentSrc(initialSrc(src))
   }
+
+  useEffect(() => {
+    if (!src || !isStoragePrivate() || !looksLikePublicStorageUrl(src)) return
+    const path = storagePathFromUrl(src)
+    if (!path) return
+    void signedUrlFor(path).then((signed) => {
+      if (signed) setCurrentSrc(signed)
+      else markStoragePublic()
+    })
+  }, [src])
 
   return (
     <img
@@ -44,14 +63,18 @@ export function SafeImage({ src, onError, ...props }: ComponentProps<'img'>) {
       src={currentSrc}
       onError={(event) => {
         const path = currentSrc ? storagePathFromUrl(currentSrc) : null
-        if (!retried && path) {
-          setRetried(true)
-          void signedUrlFor(path).then((signed) => {
-            if (signed) setCurrentSrc(signed)
-          })
+        if (!path) {
+          onError?.(event)
           return
         }
-        onError?.(event)
+        markStoragePrivate()
+        void signedUrlFor(path).then((signed) => {
+          if (signed) setCurrentSrc(signed)
+          else {
+            markStoragePublic()
+            onError?.(event)
+          }
+        })
       }}
     />
   )

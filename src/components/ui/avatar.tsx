@@ -1,6 +1,7 @@
 import * as AvatarPrimitive from '@radix-ui/react-avatar'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { isStoragePrivate, markStoragePrivate, markStoragePublic } from '@/lib/media-mode'
 import { cn, avatarGradient, initials } from '@/lib/utils'
 
 interface AvatarProps {
@@ -52,25 +53,37 @@ export function Avatar({
   const tone = genderColor(gender)
   const [currentSrc, setCurrentSrc] = useState(src ?? undefined)
   const [trackedSrc, setTrackedSrc] = useState(src)
-  const [retried, setRetried] = useState(false)
-
   // Reset saat prop `src` berubah (pola render-time, bukan effect).
   if (trackedSrc !== src) {
     setTrackedSrc(src)
     setCurrentSrc(src ?? undefined)
-    setRetried(false)
   }
 
-  function handleStatus(status: 'idle' | 'loading' | 'loaded' | 'error') {
-    if (status !== 'error') return
-    const path = avatarStoragePath(currentSrc)
-    if (retried || !path) return
-    setRetried(true)
+  // Bucket sudah diketahui privat → langsung pakai signed URL.
+  useEffect(() => {
+    if (!src || !isStoragePrivate()) return
+    const path = avatarStoragePath(src)
+    if (!path) return
     void supabase.storage
       .from(BUCKET)
       .createSignedUrl(path, 3600)
       .then(({ data }) => {
         if (data?.signedUrl) setCurrentSrc(data.signedUrl)
+        else markStoragePublic()
+      })
+  }, [src])
+
+  function handleStatus(status: 'idle' | 'loading' | 'loaded' | 'error') {
+    if (status !== 'error') return
+    const path = avatarStoragePath(currentSrc)
+    if (!path) return
+    markStoragePrivate()
+    void supabase.storage
+      .from(BUCKET)
+      .createSignedUrl(path, 3600)
+      .then(({ data }) => {
+        if (data?.signedUrl) setCurrentSrc(data.signedUrl)
+        else markStoragePublic()
       })
   }
 

@@ -92,7 +92,7 @@ Prioritas: **P0** = dipakai harian, pengguna langsung merasakan · **P1** = pent
 | B4 | Pin pesan | `starred_messages` tabel + `message_reaction_service.dart` L216-247 (pin ≠ star di mobile; cek ulang keduanya) | P1 | Kecil–sedang |
 | B5 | Starred messages UI | Tabel `starred_messages` — daftar pesan dibintangi | P1 | Sedang |
 | B6 | Live location (private) | `private_messages` type `location` + update berkala + timer berakhir | P1 | Sedang |
-| B7 | Arsip chat (UI) | `private_chats.archived_by` — kolom sudah terbaca web (types), belum ada toggle/list arsip | P1 | Kecil |
+| B7 ✅ | Arsip chat (UI) | `private_chats.archived_by` — kolom sudah terbaca web (types), belum ada toggle/list arsip | P1 | Kecil |
 | B8 ✅ | Reset password | Mobile: `reset_password_screen.dart` — Supabase `resetPasswordForEmail` | P0 | Kecil |
 | B9 | Link email ke akun anon | Mobile: `link_email_screen.dart` — `updateUser({email})` | P1 | Kecil |
 | B10 | View-once video | `video_once` / `video_once_expired` + `duration_ms` (web sudah render kartu, pastikan expiry timer sama) | P1 | Kecil |

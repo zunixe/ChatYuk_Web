@@ -1,4 +1,14 @@
-import { MessageCircle, Plus, RefreshCw, Search, Settings, Users, X } from 'lucide-react'
+import {
+  Archive,
+  ArchiveRestore,
+  MessageCircle,
+  Plus,
+  RefreshCw,
+  Search,
+  Settings,
+  Users,
+  X,
+} from 'lucide-react'
 import { useDeferredValue, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
@@ -6,9 +16,14 @@ import { Logo } from '@/components/brand/Logo'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/feedback'
 import { useChats, useParticipantsMeta, unreadTotal } from '@/hooks/useChatData'
-import { chatDisplayName, chatUnreadCount, otherParticipant } from '@/lib/api/chats'
-import { resolveAvatar } from '@/lib/media'
 import { cn } from '@/lib/utils'
+import {
+  chatDisplayName,
+  chatIsArchived,
+  chatUnreadCount,
+  otherParticipant,
+} from '@/lib/api/chats'
+import { resolveAvatar } from '@/lib/media'
 import { useAuthStore } from '@/stores/auth'
 import type { Chat } from '@/lib/types'
 import { ChatListItem } from '@/features/chats/ChatListItem'
@@ -33,6 +48,7 @@ export function ChatsPage() {
   const { t } = useTranslation()
   const profile = useAuthStore((state) => state.profile)
   const [filter, setFilter] = useState<Filter>('all')
+  const [showArchived, setShowArchived] = useState(false)
   const [term, setTerm] = useState('')
   const deferredTerm = useDeferredValue(term)
 
@@ -46,13 +62,21 @@ export function ChatsPage() {
     if (!myUid) return []
     const needle = deferredTerm.trim().toLowerCase()
     return chats.filter((chat: Chat) => {
+      // Arsip disembunyikan dari daftar utama (kolom `archived_by` per-user).
+      const archived = chatIsArchived(chat, myUid)
+      if (showArchived !== archived) return false
       if (filter === 'unread' && chatUnreadCount(chat, myUid) === 0) return false
       if (!needle) return true
       const name = chatDisplayName(chat, myUid).toLowerCase()
       const last = (chat.last_message ?? '').toLowerCase()
       return name.includes(needle) || last.includes(needle)
     })
-  }, [chats, deferredTerm, filter, myUid])
+  }, [chats, deferredTerm, filter, myUid, showArchived])
+
+  const archivedCount = useMemo(
+    () => (myUid ? chats.filter((chat) => chatIsArchived(chat, myUid)).length : 0),
+    [chats, myUid],
+  )
 
   if (!myUid) return null
 
@@ -69,9 +93,31 @@ export function ChatsPage() {
             {unread > 0 ? ` · ${t('chats.unreadCount', { count: unread })}` : ''}
           </p>
         </div>
+        <button
+          type="button"
+          onClick={() => setShowArchived((value) => !value)}
+          className={cn(
+            'ml-auto flex h-10 items-center justify-center gap-1.5 rounded-xl px-2.5 text-[11.5px] font-medium transition',
+            showArchived
+              ? 'bg-primary-soft text-primary'
+              : 'text-muted hover:bg-panel hover:text-text',
+          )}
+          aria-label={showArchived ? t('chats.hideArchived') : t('chats.showArchived')}
+          title={showArchived ? t('chats.hideArchived') : t('chats.showArchived')}
+          aria-pressed={showArchived}
+        >
+          {showArchived ? (
+            <ArchiveRestore className="h-4 w-4" />
+          ) : (
+            <Archive className="h-4 w-4" />
+          )}
+          {archivedCount > 0 ? (
+            <span className="tabular-nums">{archivedCount}</span>
+          ) : null}
+        </button>
         <Link
           to="/new-chat"
-          className="ml-auto flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-primary transition hover:bg-primary/15"
+          className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-primary transition hover:bg-primary/15"
           aria-label={t('online.title')}
           title={t('online.title')}
         >

@@ -1,5 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import {
+  Archive,
+  ArchiveRestore,
   ArrowLeft,
   ChevronDown,
   FileText,
@@ -23,7 +25,7 @@ import {
 } from 'lucide-react'
 import { Fragment, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Avatar } from '@/components/ui/avatar'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
@@ -60,6 +62,8 @@ import {
   chatIsPinned,
   chatReadAt,
   otherParticipant,
+  chatIsArchived,
+  setChatArchived,
   setChatMuted,
   setChatPinned,
 } from '@/lib/api/chats'
@@ -88,6 +92,7 @@ export function ChatPage() {
   const { t } = useTranslation()
   const { chatId } = useParams()
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const authProfile = useAuthStore((state) => state.profile)
   const myUid = authProfile?.id
 
@@ -134,6 +139,7 @@ export function ChatPage() {
 
   const outbox = useOutboxFlush(myUid)
   const pinned = Boolean(chat && myUid && chatIsPinned(chat, myUid))
+  const archived = Boolean(chat && myUid && chatIsArchived(chat, myUid))
   const muted = Boolean(chat && myUid && chatIsMuted(chat, myUid))
 
   async function togglePin() {
@@ -143,6 +149,19 @@ export function ChatPage() {
       void queryClient.invalidateQueries({ queryKey: ['chats', myUid] })
       void queryClient.invalidateQueries({ queryKey: ['chat', chatId] })
       toast.success(pinned ? 'Pin dilepas.' : 'Chat disematkan.')
+    } catch (error) {
+      toast.error(errorMessage(error))
+    }
+  }
+
+  async function toggleArchive() {
+    if (!chatId || !myUid) return
+    const next = !archived
+    try {
+      await setChatArchived(chatId, next)
+      void queryClient.invalidateQueries({ queryKey: ['chats', myUid] })
+      toast.success(next ? t('chats.archivedToast') : t('chats.unarchivedToast'))
+      if (next) navigate('/chats')
     } catch (error) {
       toast.error(errorMessage(error))
     }
@@ -409,6 +428,14 @@ export function ChatPage() {
               <DropdownMenuItem onSelect={() => void toggleMute()}>
                 {muted ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
                 {muted ? t('chat.unmuteChat') : t('chat.muteChat')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => void toggleArchive()}>
+                {archived ? (
+                  <ArchiveRestore className="h-4 w-4" />
+                ) : (
+                  <Archive className="h-4 w-4" />
+                )}
+                {archived ? t('chats.unarchiveChat') : t('chats.archiveChat')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>

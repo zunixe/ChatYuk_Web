@@ -33,6 +33,10 @@ export function chatIsMuted(chat: Chat, myUid: string): boolean {
   return Array.isArray(chat.muted_by) && chat.muted_by.includes(myUid)
 }
 
+export function chatIsArchived(chat: Chat, myUid: string): boolean {
+  return Array.isArray(chat.archived_by) && chat.archived_by.includes(myUid)
+}
+
 export function chatReadAt(chat: Chat | null | undefined, uid: string): string | null {
   if (!chat?.last_read_at) return null
   return chat.last_read_at[uid] ?? null
@@ -138,6 +142,18 @@ export async function unhideChat(chatId: string, uid: string): Promise<void> {
 }
 
 /** Pin / unpin chat untuk diri sendiri (`pinned_by`). */
+/**
+ * Arsipkan / keluarkan dari arsip. Server RPC `archive_private_chat`
+ * (paritas Android `archivePrivateChat`); kolom `archived_by` per-user.
+ */
+export async function setChatArchived(chatId: string, archived: boolean): Promise<void> {
+  const { error } = await supabase.rpc('archive_private_chat', {
+    p_chat_id: chatId,
+    p_archive: archived,
+  })
+  if (error) throw error
+}
+
 export async function setChatPinned(chatId: string, uid: string, pinned: boolean): Promise<void> {
   const chat = await getChat(chatId)
   if (!chat) throw new Error('Chat tidak ditemukan.')

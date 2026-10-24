@@ -3,6 +3,7 @@ import {
   Archive,
   ArchiveRestore,
   ArrowLeft,
+  Eye,
   ChevronDown,
   FileText,
   ImagePlus,
@@ -203,6 +204,7 @@ export function ChatPage() {
     handleDocFile,
     sendSticker,
     handleVideoFile,
+    sendVideoOnce,
     toggleRecording,
     sendLocation,
     startLiveLocation,
@@ -213,6 +215,7 @@ export function ChatPage() {
   const [emojiOpen, setEmojiOpen] = useState(false)
   const [forwardTarget, setForwardTarget] = useState<Message | null>(null)
   const [liveOpen, setLiveOpen] = useState(false)
+  const onceRef = useRef<HTMLInputElement>(null)
   const starredIds = useStarredIds(myUid, 'private', chatId)
   const toggleStarMutation = useToggleStar(myUid, 'private', chatId)
   const [attachOpen, setAttachOpen] = useState(false)
@@ -753,6 +756,17 @@ export function ChatPage() {
             className="hidden"
             onChange={(event) => void handleVideoFile(event)}
           />
+          <input
+            ref={onceRef}
+            type="file"
+            accept="video/*"
+            className="hidden"
+            onChange={(event) => {
+              const file = event.target.files?.[0]
+              if (onceRef.current) onceRef.current.value = ''
+              if (file) void sendVideoOnce(file)
+            }}
+          />
           {otherBlocked ? (
             <div className="flex min-w-0 flex-1 items-center gap-2 rounded-2xl border border-danger/25 bg-danger/8 px-3.5 py-2.5 text-[12px] text-danger">
               <ShieldOff className="h-4 w-4 shrink-0" />
@@ -822,6 +836,17 @@ export function ChatPage() {
               >
                 <Video className="h-4 w-4 text-primary" />
                 {t('chat.video')}
+              </button>
+              <button
+                type="button"
+                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] text-text transition hover:bg-panel"
+                onClick={() => {
+                  setAttachOpen(false)
+                  onceRef.current?.click()
+                }}
+              >
+                <Eye className="h-4 w-4 text-primary" />
+                {t('chat.videoOnce')}
               </button>
               <button
                 type="button"

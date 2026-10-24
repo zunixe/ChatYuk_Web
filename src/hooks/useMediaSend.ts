@@ -333,6 +333,49 @@ export function useMediaSend({
     }
   }
 
+  /**
+   * Kirim video SEKALI LIHAT (`type='video_once'`). Kontrak sama dengan
+   * Android: `image_path` = .mp4, `video_poster` = JPEG kecil, dan
+   * `duration_ms` = durasi video ASLI (bukan timer).
+   */
+  async function sendVideoOnce(file: File) {
+    if (!chatId || !myUid || otherBlocked) return
+    if (!file.type.startsWith('video/')) {
+      toast.error('Pilih berkas video.')
+      return
+    }
+    if (!(await validateUpload(file))) return
+    if (file.size > MAX_VIDEO_BYTES) {
+      toast.error('Ukuran video maksimal 15 MB.')
+      return
+    }
+    setMediaBusy(true)
+    try {
+      const durationMs = await probeVideoDuration(file)
+      if (durationMs > MAX_VIDEO_MS) {
+        toast.error('Durasi video maksimal 60 detik.')
+        return
+      }
+      const [path, poster] = await Promise.all([
+        uploadChatVideo(chatId, file),
+        generateVideoPoster(file).catch(() => null),
+      ])
+      let posterPath: string | undefined
+      if (poster) posterPath = await uploadChatVideoPoster(chatId, poster)
+      await sendAttachment({
+        type: 'video_once',
+        text: '',
+        imagePath: path,
+        videoPoster: posterPath,
+        durationMs,
+      })
+    } catch (error) {
+      toast.error(errorMessage(error))
+    } finally {
+      setMediaBusy(false)
+    }
+  }
+
   async function handleVideoFile(event: ChangeEvent<HTMLInputElement>, caption = '') {
     const file = event.target.files?.[0]
     if (videoRef.current) videoRef.current.value = ''
@@ -511,6 +554,7 @@ export function useMediaSend({
     handleImageFile,
     handleDocFile,
     handleVideoFile,
+    sendVideoOnce,
     sendSticker,
     toggleRecording,
     sendLocation,

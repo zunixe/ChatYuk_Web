@@ -465,8 +465,8 @@ export async function sendRoomMedia(input: {
   voicePath?: string
   videoPoster?: string
   durationMs?: number
-}): Promise<void> {
-  const { error } = await supabase.from('messages').insert({
+}): Promise<number> {
+  const { data, error } = await supabase.from('messages').insert({
     room_id: input.roomId,
     sender_id: input.senderId,
     sender_name: input.senderName,
@@ -478,7 +478,14 @@ export async function sendRoomMedia(input: {
     ...(input.voicePath ? { voice_path: input.voicePath } : {}),
     ...(input.videoPoster ? { video_poster: input.videoPoster } : {}),
     ...(input.durationMs != null ? { duration_ms: input.durationMs } : {}),
-  })
+  }).select('id').single()
+  if (error) throw error
+  return asNumber(asRecord(data).id)
+}
+
+/** Perbarui payload lokasi (koordinat bergerak) — hanya pesan milik sendiri. */
+export async function updateRoomLocation(messageId: number, payload: string): Promise<void> {
+  const { error } = await supabase.from('messages').update({ text: payload }).eq('id', messageId)
   if (error) throw error
 }
 

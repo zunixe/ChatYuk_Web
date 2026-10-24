@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { sendRoomMedia } from '@/lib/api/groups'
+import { sendRoomMedia, updateRoomLocation } from '@/lib/api/groups'
 import { hasValidMagicBytes, looksLikeExecutable } from '@/lib/upload-validate'
 import { MAX_FILE_BYTES, MAX_IMAGE_BYTES, MAX_VIDEO_BYTES, MAX_VIDEO_MS } from '@/lib/constants'
 import { errorMessage } from '@/lib/errors'
@@ -45,6 +45,7 @@ export function useGroupMediaSend({
   const chunksRef = useRef<Blob[]>([])
   const startRef = useRef(0)
   const timerRef = useRef<number | undefined>(undefined)
+  const liveTimerRef = useRef<number | undefined>(undefined)
 
   const [imageBusy, setImageBusy] = useState(false)
   const [mediaBusy, setMediaBusy] = useState(false)
@@ -54,6 +55,7 @@ export function useGroupMediaSend({
   useEffect(() => {
     return () => {
       if (timerRef.current) window.clearInterval(timerRef.current)
+      if (liveTimerRef.current) window.clearInterval(liveTimerRef.current)
     }
   }, [])
 
@@ -89,10 +91,10 @@ export function useGroupMediaSend({
     voicePath?: string
     videoPoster?: string
     durationMs?: number
-  }) {
-    if (!roomId || !myUid) return
+  }): Promise<number | null> {
+    if (!roomId || !myUid) return null
     try {
-      await sendRoomMedia({
+      const id = await sendRoomMedia({
         roomId,
         senderId: myUid,
         senderName,
@@ -105,9 +107,66 @@ export function useGroupMediaSend({
         durationMs: input.durationMs,
       })
       refresh()
+      return id
     } catch (error) {
       toast.error(errorMessage(error))
+      return null
     }
+  }
+
+  /**
+   * Bagikan lokasi LIVE: kirim sekali lalu perbarui koordinat tiap 30 detik
+   * sampai `expiresAt` lewat (sama seperti Android
+   * `_startLiveLocationUpdates`). Event pembaruan tetap `UPDATE messages.text`
+   * sehingga penerima di HP ikut bergerak.
+   */
+  function startLiveLocation(minutes: number) {
+    if (!roomId || !navigator.geolocation) {
+      toast.error('Perangkat tidak mendukung lokasi.')
+      return
+    }
+    const expiresAt = new Date(Date.now() + minutes * 60_000)
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const base = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          label: 'Lokasi saya',
+          caption: '',
+          live: true,
+          exp: expiresAt.toISOString(),
+          acc: Math.round(position.coords.accuracy),
+        }
+        void send({ type: 'location', text: JSON.stringify(base) }).then((messageId) => {
+          if (messageId == null) return
+          if (liveTimerRef.current) window.clearInterval(liveTimerRef.current)
+          liveTimerRef.current = window.setInterval(() => {
+            if (Date.now() > expiresAt.getTime()) {
+              if (liveTimerRef.current) window.clearInterval(liveTimerRef.current)
+              liveTimerRef.current = undefined
+              return
+            }
+            navigator.geolocation.getCurrentPosition(
+              (next) => {
+                void updateRoomLocation(
+                  messageId,
+                  JSON.stringify({
+                    ...base,
+                    lat: next.coords.latitude,
+                    lng: next.coords.longitude,
+                    acc: Math.round(next.coords.accuracy),
+                  }),
+                )
+              },
+              () => {},
+              { enableHighAccuracy: true, timeout: 12000 },
+            )
+          }, 30_000)
+        })
+      },
+      () => toast.error('Gagal mengambil lokasi. Izinkan akses lokasi.'),
+      { enableHighAccuracy: true, timeout: 12000 },
+    )
   }
 
   async function handleImage(event: ChangeEvent<HTMLInputElement>) {
@@ -269,5 +328,6 @@ export function useGroupMediaSend({
     handleVideo,
     toggleRecording,
     sendLocation,
+    startLiveLocation,
   }
 }

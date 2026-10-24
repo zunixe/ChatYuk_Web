@@ -68,9 +68,15 @@ Sudah:
 - **poll di grup (A7)**: render + voting. RPC khusus room:
   `get_room_poll_results`, `vote_room_poll` (bukan versi private).
 
+- **lokasi live di grup (A8)**: tombol LIVE di composer → pilih durasi
+  (15 mnt / 1 jam / 8 jam) → kirim payload
+  `{lat,lng,label,live:true,exp,acc}` lalu perbarui koordinat tiap 30 detik
+  sampai `exp` lewat (`UPDATE messages.text`, sama seperti Android
+  `_startLiveLocationUpdates`). Bubble menampilkan badge **LIVE** +
+  "Live · sampai HH.MM".
+
 Belum: **buat poll dari web** (chat private web juga belum punya, jadi
-paritas), voice room, live location refresh (A8), galeri media grup
-(A9), QR (A10), ubah nama/deskripsi grup (mobile juga belum punya), upload
+paritas), voice room, galeri media grup (A9), QR (A10), ubah nama/deskripsi grup (mobile juga belum punya), upload
 ikon gambar (mobile pakai storage `room-icons`).
 
 ### Path storage media grup — WAJIB `room_<roomId>`

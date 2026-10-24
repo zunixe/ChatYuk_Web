@@ -20,6 +20,7 @@ import { messageImageSrc, storagePublicUrl } from '@/lib/media'
 import { SafeImage } from '@/components/ui/safe-image'
 import { ViewOnceCard } from '@/features/chat/ViewOnceCard'
 import { PollCard } from '@/features/chat/PollCard'
+import { useNow } from '@/hooks/useNow'
 import { isViewOnceFamily } from '@/lib/view-once'
 import { safeMapUrl, safeMediaUrl, safePhoneHref, safePhoneLabel } from '@/lib/url-safety'
 import { formatMessageTime } from '@/lib/time'
@@ -120,6 +121,10 @@ export function MessageBubble({
   const fileSrc = message.type === 'file' ? mediaUrl(message.image_path) : null
   const stickerSrc = message.type === 'sticker' ? messageImageSrc(message) ?? mediaUrl(message.image_path) : null
   const location = message.type === 'location' ? parseObject(text) : null
+  const liveExp = typeof location?.exp === 'string' ? new Date(location.exp) : null
+  const now = useNow()
+  const liveActive =
+    location?.live === true && liveExp != null && now > 0 && liveExp.getTime() > now
   const contact = message.type === 'contact' ? parseObject(message.contact) ?? parseObject(text) : null
   const failed = message.client_status === 'failed'
   const sending = message.client_status === 'sending'
@@ -333,9 +338,20 @@ export function MessageBubble({
                   {String(location?.label ?? 'Lokasi')}
                 </span>
                 <span className="text-[10.5px] text-muted-2">
-                  {String(location?.caption ?? 'Buka di Google Maps')}
+                  {liveActive && liveExp
+                    ? `Live · sampai ${liveExp.toLocaleTimeString('id-ID', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}`
+                    : String(location?.caption ?? 'Buka di Google Maps')}
                 </span>
               </span>
+              {liveActive ? (
+                <span className="flex items-center gap-1 rounded-full bg-online/15 px-1.5 py-0.5 text-[9.5px] font-medium text-online">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-online" />
+                  LIVE
+                </span>
+              ) : null}
             </a>
           ) : message.type === 'poll' ? (
             <PollCard message={message} disabled={sending} room={room} />

@@ -16,6 +16,7 @@ import {
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/feedback'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
 import {
   useMarkRoomRead,
   useRoom,
@@ -55,6 +56,7 @@ export function GroupRoomPage() {
 
   const [draft, setDraft] = useState('')
   const [infoOpen, setInfoOpen] = useState(false)
+  const [livePickerOpen, setLivePickerOpen] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   const messages = messagesQuery.data?.pages.flat() ?? []
@@ -194,6 +196,29 @@ export function GroupRoomPage() {
         <div ref={bottomRef} />
       </div>
 
+      <Dialog open={livePickerOpen} onOpenChange={setLivePickerOpen}>
+        <DialogContent title={t('groups.liveDuration')} className="max-w-sm">
+          <div className="flex flex-col gap-1.5">
+            {[
+              { minutes: 15, label: t('groups.live15') },
+              { minutes: 60, label: t('groups.live60') },
+              { minutes: 480, label: t('groups.live480') },
+            ].map((option) => (
+              <Button
+                key={option.minutes}
+                variant="secondary"
+                onClick={() => {
+                  setLivePickerOpen(false)
+                  media.startLiveLocation(option.minutes)
+                }}
+              >
+                {option.label}
+              </Button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {membership.data === true ? (
         <form
           onSubmit={submit}
@@ -257,6 +282,16 @@ export function GroupRoomPage() {
             className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted transition hover:bg-panel hover:text-text sm:flex"
           >
             <MapPin className="h-[18px] w-[18px]" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setLivePickerOpen(true)}
+            aria-label={t('groups.liveLocation')}
+            title={t('groups.liveLocation')}
+            className="hidden h-10 shrink-0 items-center justify-center gap-1 rounded-xl px-2 text-muted transition hover:bg-panel hover:text-text sm:flex"
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-online" />
+            <span className="text-[10px] font-medium">LIVE</span>
           </button>
           <button
             type="button"

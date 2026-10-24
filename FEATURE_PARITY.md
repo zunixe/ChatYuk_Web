@@ -76,7 +76,7 @@ Prioritas: **P0** = dipakai harian, pengguna langsung merasakan · **P1** = pent
 | A3 ✅ | Approve join request | `rpc('list_room_join_requests')` + update status `approved`/`rejected` (mobile: `PrivateRoomService.approveJoin`) | P0 | Kecil |
 | A4 ✅ | Info grup + edit | `rooms` (name, description, icon, password) + `rpc('update_room_icon')`, `rpc('reset_room_password')`, hapus password | P1 | Sedang |
 | A5 ✅ | Extend & hapus grup | `rpc('extend_private_room')` (50 × mult), `rpc('delete_private_room')` | P1 | Kecil |
-| A6 | Media di grup | Tabel `messages` kolom sama (`image_path`, `voice_path`, `duration_ms`, `video_poster`) — kontrak sudah sama dengan private, tinggal wire ke `useMediaSend` | P1 | Sedang |
+| A6 ✅ | Media di grup | Tabel `messages` kolom sama (`image_path`, `voice_path`, `duration_ms`, `video_poster`) — kontrak sudah sama dengan private, tinggal wire ke `useMediaSend` | P1 | Sedang |
 | A7 | Poll di grup | `messages.poll` (jsonb) + `rpc('vote_room_poll')`, `rpc('get_room_poll_results')` | P1 | Kecil (PollCard sudah ada) |
 | A8 | Live location di room | `messages` type `location` + update `text` berkala (mobile: `updateLocationMessage`) | P2 | Sedang |
 | A9 | Group media screen | Galeri media room (mobile: `group_media_screen.dart`) | P2 | Sedang |

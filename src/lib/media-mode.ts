@@ -16,9 +16,12 @@ let privateMode: boolean | null = null
 
 function readStored(): boolean {
   try {
-    return window.localStorage.getItem(KEY) === '1'
+    // Default PRIVAT: bucket `chat-photos` sekarang privat, dan signed URL
+    // juga sah untuk bucket publik. Nilai '0' hanya diset bila signed URL
+    // terbukti gagal (lihat markStoragePublic) agar bisa pulih otomatis.
+    return window.localStorage.getItem(KEY) !== '0'
   } catch {
-    return false
+    return true
   }
 }
 
@@ -41,7 +44,7 @@ export function markStoragePublic(): void {
   if (privateMode === false) return
   privateMode = false
   try {
-    window.localStorage.removeItem(KEY)
+    window.localStorage.setItem(KEY, '0')
   } catch {
     /* abaikan */
   }

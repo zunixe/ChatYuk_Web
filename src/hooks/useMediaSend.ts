@@ -5,6 +5,7 @@ import { sendPrivateMessage } from '@/lib/api/messages'
 import { enqueueOutbox, isNetworkError } from '@/lib/outbox'
 import { hasValidMagicBytes, looksLikeExecutable } from '@/lib/upload-validate'
 import { MAX_FILE_BYTES, MAX_IMAGE_BYTES, MAX_VIDEO_BYTES, MAX_VIDEO_MS } from '@/lib/constants'
+import { pickRecorderMime, probeVideoDuration } from '@/lib/media-capture'
 import { errorMessage } from '@/lib/errors'
 import {
   generateVideoPoster,
@@ -27,36 +28,6 @@ import type { Message } from '@/lib/types'
 function tempId(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID()
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`
-}
-
-function probeVideoDuration(file: File): Promise<number> {
-  return new Promise((resolve) => {
-    const video = document.createElement('video')
-    const url = URL.createObjectURL(file)
-    video.preload = 'metadata'
-    video.onloadedmetadata = () => {
-      const ms = Number.isFinite(video.duration) ? Math.round(video.duration * 1000) : 0
-      URL.revokeObjectURL(url)
-      resolve(ms)
-    }
-    video.onerror = () => {
-      URL.revokeObjectURL(url)
-      resolve(0)
-    }
-    video.src = url
-  })
-}
-
-/**
- * Rekaman voice HARUS m4a: mobile hanya mengenali `voice/*.m4a`
- * (`StoragePhotoService.isVoicePath`). Bila browser tidak mendukung, rekam
- * ditolak — lebih baik jelas daripada mengirim file yang tak terbaca di HP.
- */
-const VOICE_MIME = 'audio/mp4'
-
-function pickRecorderMime(): string {
-  if (typeof MediaRecorder === 'undefined') return ''
-  return MediaRecorder.isTypeSupported(VOICE_MIME) ? VOICE_MIME : ''
 }
 
 /** Pengiriman media: gambar, dokumen, video, voice note, lokasi. */

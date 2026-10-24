@@ -55,6 +55,11 @@ export interface RoomMessage {
   text: string | null
   type: string
   imagePath: string | null
+  voicePath: string | null
+  videoPoster: string | null
+  durationMs: number | null
+  poll: unknown
+  contact: unknown
   isDeleted: boolean
   edited: boolean
   repliedToId: number | null
@@ -115,6 +120,11 @@ function mapMessage(raw: unknown): RoomMessage {
     text: typeof row.text === 'string' ? row.text : null,
     type: asString(row.type, 'text'),
     imagePath: typeof row.image_path === 'string' ? row.image_path : null,
+    voicePath: typeof row.voice_path === 'string' ? row.voice_path : null,
+    videoPoster: typeof row.video_poster === 'string' ? row.video_poster : null,
+    durationMs: typeof row.duration_ms === 'number' ? row.duration_ms : null,
+    poll: row.poll ?? null,
+    contact: row.contact ?? null,
     isDeleted: Boolean(row.is_deleted),
     edited: Boolean(row.edited),
     repliedToId: typeof row.replied_to_id === 'number' ? row.replied_to_id : null,
@@ -220,7 +230,7 @@ export async function fetchRoomMessages(
   let query = supabase
     .from('messages')
     .select(
-      'id, room_id, sender_id, sender_name, sender_gender, text, type, image_path, is_deleted, edited, replied_to_id, replied_to_text, replied_to_sender_name, created_at',
+      'id, room_id, sender_id, sender_name, sender_gender, text, type, image_path, voice_path, video_poster, duration_ms, poll, contact, is_deleted, edited, replied_to_id, replied_to_text, replied_to_sender_name, created_at',
     )
     .eq('room_id', roomId)
     .order('id', { ascending: false })
@@ -436,6 +446,39 @@ export async function extendRoom(roomId: string): Promise<{ points: number }> {
 
 export async function deleteRoom(roomId: string): Promise<void> {
   const { error } = await supabase.rpc('delete_private_room', { p_room_id: roomId })
+  if (error) throw error
+}
+
+/**
+ * Kirim pesan media ke grup. Kontrak kolom sama dengan `sendRoomMessage`
+ * Android: `image_path` untuk gambar/video/file, `voice_path` untuk voice,
+ * `duration_ms` untuk durasi voice/video ATAU ukuran file.
+ */
+export async function sendRoomMedia(input: {
+  roomId: string
+  senderId: string
+  senderName: string
+  senderGender: string | null
+  type: 'image' | 'video' | 'file' | 'voice' | 'location'
+  text: string
+  imagePath?: string
+  voicePath?: string
+  videoPoster?: string
+  durationMs?: number
+}): Promise<void> {
+  const { error } = await supabase.from('messages').insert({
+    room_id: input.roomId,
+    sender_id: input.senderId,
+    sender_name: input.senderName,
+    sender_gender: input.senderGender ?? '',
+    text: input.text,
+    type: input.type,
+    image_data: input.type === 'voice' || input.type === 'location' ? '' : (input.imagePath ?? ''),
+    ...(input.imagePath ? { image_path: input.imagePath } : {}),
+    ...(input.voicePath ? { voice_path: input.voicePath } : {}),
+    ...(input.videoPoster ? { video_poster: input.videoPoster } : {}),
+    ...(input.durationMs != null ? { duration_ms: input.durationMs } : {}),
+  })
   if (error) throw error
 }
 

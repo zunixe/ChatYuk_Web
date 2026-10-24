@@ -61,8 +61,27 @@ Sudah:
   keluar grup. Tombol dimoderasi hanya muncul untuk owner/admin; server
   tetap penegak akhir.
 
-Belum: media di grup, voice room, poll, ubah nama/deskripsi grup (mobile
-juga belum punya), upload ikon gambar (mobile pakai storage `room-icons`).
+- **media di grup (A6)**: kirim gambar, video (maks 15 MB/60 dtk), file
+  (maks 50 MB), voice note m4a, dan lokasi; render semua tipe lewat
+  `MessageBubble` (gambar/voice/video/file/lokasi/sticker).
+
+Belum: voice room, poll (A7), live location refresh (A8), galeri media grup
+(A9), QR (A10), ubah nama/deskripsi grup (mobile juga belum punya), upload
+ikon gambar (mobile pakai storage `room-icons`).
+
+### Path storage media grup — WAJIB `room_<roomId>`
+
+Policy `storage_object_owner_ok` menolak `chat/<roomId>/...`. Untuk grup,
+segmen path harus **`room_<roomId>`**, sama dengan Android
+(`photoUploadChatId => 'room_${room.id}'`):
+
+```
+chat/room_<roomId>/<stamp>.jpg
+voice/room_<roomId>/<stamp>.m4a
+```
+
+Bila salah, upload Storage mengembalikan **400** dan pesan tidak pernah
+tersimpan. Ini sempat terjadi saat implementasi dan sudah diperbaiki.
 
 ### Pemetaan RPC panel info
 

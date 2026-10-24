@@ -1,11 +1,21 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, Info, Lock, Send, Users } from 'lucide-react'
+import {
+  ArrowLeft,
+  ImagePlus,
+  Info,
+  Lock,
+  MapPin,
+  Mic,
+  Paperclip,
+  Send,
+  Users,
+  Video,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/feedback'
-import { Avatar } from '@/components/ui/avatar'
 import {
   useMarkRoomRead,
   useRoom,
@@ -15,7 +25,11 @@ import {
 } from '@/hooks/useGroups'
 import { useAuthStore } from '@/stores/auth'
 import { cn } from '@/lib/utils'
+import type { RoomMessage } from '@/lib/api/groups'
 import { GroupInfoPanel } from '@/features/groups/GroupInfoPanel'
+import { MessageBubble } from '@/features/chat/MessageBubble'
+import { useGroupMediaSend } from '@/hooks/useGroupMediaSend'
+import type { Message } from '@/lib/types'
 import { supabase } from '@/lib/supabase'
 
 export function GroupRoomPage() {
@@ -29,6 +43,15 @@ export function GroupRoomPage() {
   const messagesQuery = useRoomMessages(groupId)
   const sendMessage = useSendRoomMessage(groupId)
   const markRead = useMarkRoomRead()
+  const media = useGroupMediaSend({
+    roomId: groupId,
+    myUid,
+    senderName: profile?.nickname ?? 'Kamu',
+    senderGender: profile?.gender ?? null,
+    onSent: () => {
+      void messagesQuery.refetch()
+    },
+  })
 
   const [draft, setDraft] = useState('')
   const [infoOpen, setInfoOpen] = useState(false)
@@ -149,51 +172,23 @@ export function GroupRoomPage() {
         ) : messages.length === 0 ? (
           <p className="py-10 text-center text-[12.5px] text-muted">{t('groups.emptyHint')}</p>
         ) : (
-          <ul className="flex flex-col gap-2.5">
-            {messages.map((message) => {
-              const isMine = message.senderId === myUid
-              return (
-                <li
-                  key={message.id}
-                  className={cn('flex items-end gap-2', isMine ? 'flex-row-reverse' : 'flex-row')}
-                >
-                  {!isMine ? (
-                    <Avatar
-                      name={message.senderName}
-                      size={28}
-                      gender={message.senderGender}
-                    />
-                  ) : null}
-                  <div className={cn('max-w-[78%]', isMine ? 'items-end' : 'items-start')}>
-                    {!isMine ? (
-                      <div className="mb-0.5 text-[10.5px] text-muted-2">
-                        {message.senderName}
-                      </div>
-                    ) : null}
-                    {message.repliedToText ? (
-                      <div className="mb-1 rounded-lg border-l-2 border-primary/50 bg-panel px-2 py-1 text-[10.5px] text-muted">
-                        {message.repliedToSenderName}: {message.repliedToText}
-                      </div>
-                    ) : null}
-                    <div
-                      className={cn(
-                        'whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-[13px] leading-relaxed',
-                        isMine
-                          ? 'bg-primary text-white'
-                          : 'border border-border bg-surface text-text',
-                      )}
-                    >
-                      {message.isDeleted ? (
-                        <span className="italic opacity-70">{t('groups.deleted')}</span>
-                      ) : (
-                        message.text
-                      )}
-                    </div>
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
+          <div className="flex flex-col gap-1">
+            {messages.map((message) => (
+              <MessageBubble
+                key={message.id}
+                message={toMessage(message, groupId ?? '')}
+                isMine={message.senderId === myUid}
+                myUid={myUid ?? ''}
+                onReply={() => {}}
+                onReact={() => {}}
+                onRetry={() => {}}
+                onEdit={() => {}}
+                onDelete={() => {}}
+                onOpenImage={(src) => window.open(src, '_blank', 'noopener')}
+                onMediaLoad={() => {}}
+              />
+            ))}
+          </div>
         )}
         <div ref={bottomRef} />
       </div>
@@ -201,8 +196,85 @@ export function GroupRoomPage() {
       {membership.data === true ? (
         <form
           onSubmit={submit}
-          className="sticky bottom-0 flex items-end gap-2 border-t border-border bg-surface px-3 py-2.5 sm:px-5"
+          className="sticky bottom-0 flex items-end gap-1.5 border-t border-border bg-surface px-3 py-2.5 sm:px-5"
         >
+          <input
+            ref={media.imageRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(event) => void media.handleImage(event)}
+          />
+          <input
+            ref={media.docRef}
+            type="file"
+            className="hidden"
+            onChange={(event) => void media.handleDoc(event)}
+          />
+          <input
+            ref={media.videoRef}
+            type="file"
+            accept="video/*"
+            className="hidden"
+            onChange={(event) => void media.handleVideo(event)}
+          />
+          <button
+            type="button"
+            onClick={() => media.imageRef.current?.click()}
+            disabled={media.imageBusy}
+            aria-label={t('chat.photo')}
+            title={t('chat.photo')}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted transition hover:bg-panel hover:text-text disabled:opacity-50"
+          >
+            {media.imageBusy ? <Spinner /> : <ImagePlus className="h-[18px] w-[18px]" />}
+          </button>
+          <button
+            type="button"
+            onClick={() => media.docRef.current?.click()}
+            disabled={media.mediaBusy}
+            aria-label={t('chat.file')}
+            title={t('chat.file')}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted transition hover:bg-panel hover:text-text disabled:opacity-50"
+          >
+            <Paperclip className="h-[18px] w-[18px]" />
+          </button>
+          <button
+            type="button"
+            onClick={() => media.videoRef.current?.click()}
+            disabled={media.mediaBusy}
+            aria-label={t('chat.video')}
+            title={t('chat.video')}
+            className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted transition hover:bg-panel hover:text-text disabled:opacity-50 sm:flex"
+          >
+            <Video className="h-[18px] w-[18px]" />
+          </button>
+          <button
+            type="button"
+            onClick={() => media.sendLocation()}
+            aria-label={t('chat.location')}
+            title={t('chat.location')}
+            className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted transition hover:bg-panel hover:text-text sm:flex"
+          >
+            <MapPin className="h-[18px] w-[18px]" />
+          </button>
+          <button
+            type="button"
+            onClick={media.toggleRecording}
+            aria-label={t('chat.voice')}
+            title={t('chat.voice')}
+            className={cn(
+              'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition disabled:opacity-50',
+              media.recording
+                ? 'bg-danger/10 text-danger'
+                : 'text-muted hover:bg-panel hover:text-text',
+            )}
+          >
+            {media.recording ? (
+              <span className="text-[10px] font-medium">{media.recordSecs}s</span>
+            ) : (
+              <Mic className="h-[18px] w-[18px]" />
+            )}
+          </button>
           <textarea
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
@@ -226,4 +298,29 @@ export function GroupRoomPage() {
       ) : null}
     </div>
   )
+}
+
+/** Petakan pesan room → bentuk `Message` agar bisa dirender `MessageBubble`. */
+function toMessage(message: RoomMessage, chatId: string): Message {
+  return {
+    id: message.id,
+    chat_id: chatId,
+    sender_id: message.senderId,
+    sender_name: message.senderName,
+    sender_gender: message.senderGender,
+    text: message.text,
+    type: message.type,
+    image_path: message.imagePath,
+    voice_path: message.voicePath,
+    video_poster: message.videoPoster,
+    duration_ms: message.durationMs,
+    poll: message.poll,
+    contact: message.contact,
+    replied_to_id: message.repliedToId,
+    replied_to_text: message.repliedToText,
+    replied_to_sender_name: message.repliedToSenderName,
+    is_deleted: message.isDeleted,
+    edited: message.edited,
+    created_at: message.createdAt ?? new Date().toISOString(),
+  }
 }

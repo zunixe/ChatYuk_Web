@@ -30,10 +30,18 @@ function parsePoll(message: Message): PollShape | null {
   return { q: question, o: options, m: obj.m === true }
 }
 
-export function PollCard({ message, disabled }: { message: Message; disabled?: boolean }) {
+export function PollCard({
+  message,
+  disabled,
+  room = false,
+}: {
+  message: Message
+  disabled?: boolean
+  room?: boolean
+}) {
   const poll = parsePoll(message)
-  const results = usePollResults([message.id])
-  const vote = useVotePoll()
+  const results = usePollResults([message.id], room)
+  const vote = useVotePoll(room)
   const [pending, setPending] = useState<number[]>([])
 
   if (!poll) {

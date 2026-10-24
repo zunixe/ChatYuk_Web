@@ -65,7 +65,11 @@ Sudah:
   (maks 50 MB), voice note m4a, dan lokasi; render semua tipe lewat
   `MessageBubble` (gambar/voice/video/file/lokasi/sticker).
 
-Belum: voice room, poll (A7), live location refresh (A8), galeri media grup
+- **poll di grup (A7)**: render + voting. RPC khusus room:
+  `get_room_poll_results`, `vote_room_poll` (bukan versi private).
+
+Belum: **buat poll dari web** (chat private web juga belum punya, jadi
+paritas), voice room, live location refresh (A8), galeri media grup
 (A9), QR (A10), ubah nama/deskripsi grup (mobile juga belum punya), upload
 ikon gambar (mobile pakai storage `room-icons`).
 

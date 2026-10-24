@@ -17,14 +17,17 @@ function parseResults(raw: unknown): PollResults {
 }
 
 /** Hasil vote untuk sekumpulan pesan poll (batch, lazy). */
-export function usePollResults(messageIds: number[]) {
+export function usePollResults(messageIds: number[], room = false) {
   const ids = messageIds.filter((id) => Number.isFinite(id) && id > 0)
   return useQuery({
-    queryKey: ['poll-results', ids.join(',')],
+    queryKey: ['poll-results', room ? 'room' : 'private', ids.join(',')],
     enabled: ids.length > 0,
     staleTime: 20_000,
     queryFn: async (): Promise<Record<string, PollResults>> => {
-      const { data, error } = await supabase.rpc('get_poll_results', { p_message_ids: ids })
+      const { data, error } = await supabase.rpc(
+        room ? 'get_room_poll_results' : 'get_poll_results',
+        { p_message_ids: ids },
+      )
       if (error) throw error
       const map: Record<string, PollResults> = {}
       if (Array.isArray(data)) {
@@ -43,11 +46,11 @@ export function usePollResults(messageIds: number[]) {
   })
 }
 
-export function useVotePoll() {
+export function useVotePoll(room = false) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ messageId, options }: { messageId: number; options: number[] }) => {
-      const { data, error } = await supabase.rpc('vote_poll', {
+      const { data, error } = await supabase.rpc(room ? 'vote_room_poll' : 'vote_poll', {
         p_message_id: messageId,
         p_options: options,
       })

@@ -186,6 +186,7 @@ export function GroupRoomPage() {
                 onDelete={() => {}}
                 onOpenImage={(src) => window.open(src, '_blank', 'noopener')}
                 onMediaLoad={() => {}}
+                room
               />
             ))}
           </div>

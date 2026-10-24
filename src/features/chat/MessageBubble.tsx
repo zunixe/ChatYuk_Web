@@ -84,6 +84,8 @@ interface MessageBubbleProps {
   onDelete: (message: Message) => void
   onOpenImage: (src: string) => void
   onMediaLoad: () => void
+  /** True bila bubble dirender di room/grup (RPC poll berbeda). */
+  room?: boolean
 }
 
 export function MessageBubble({
@@ -99,6 +101,7 @@ export function MessageBubble({
   onDelete,
   onOpenImage,
   onMediaLoad,
+  room = false,
 }: MessageBubbleProps) {
   const [pickerOpen, setPickerOpen] = useState(false)
   const deleted = message.is_deleted === true
@@ -335,7 +338,7 @@ export function MessageBubble({
               </span>
             </a>
           ) : message.type === 'poll' ? (
-            <PollCard message={message} disabled={sending} />
+            <PollCard message={message} disabled={sending} room={room} />
           ) : message.type === 'contact' ? (
             <div className="min-w-48 rounded-xl bg-panel/70 p-2.5">
               <div className="text-[12px] font-medium text-text">

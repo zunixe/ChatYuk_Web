@@ -530,6 +530,7 @@ Backup terakhir: `/data/workspace/backups/pre-google-dev-1792540007.dump` (1.9 M
 | 2026-10-22 | Uji media privat (bucket percobaan) LULUS; penerapan penuh ditunda |
 | 2026-10-22 | Gate `require_registration` di web: tombol tamu dinonaktifkan bila aktif. Android tidak disentuh |
 | 2026-10-23 | Grup di web: list, explore, join, chat teks, realtime. Join server GRATIS (jangan tampilkan `join_paid`) |
+| 2026-10-23 | FEATURE_PARITY.md: peta gap fitur mobile vs web + urutan eksekusi disetujui |
 | 2026-10-22 | Fallback media: web auto signed URL saat URL publik ditolak (uji bucket privat PASS). Android tidak memakai URL publik — aman |
 | 2026-10-21 | Perbaikan `presence_for`: `invisible_admin_uid` text kosong → cast uuid gagal (POST 400 di `/rest/v1/rpc/presence_for`). Fungsi live di-replace dari `20261020150000_fix_presence_for_invisible_uid.sql` |
 | 2026-10-21 | Perbaikan `auth.users` seed: kolom token NULL → GoTrue admin API 500 `converting NULL to string` |

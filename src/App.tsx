@@ -13,6 +13,7 @@ import { RegisterPage } from '@/features/auth/RegisterPage'
 import { OnboardingPage } from '@/features/auth/OnboardingPage'
 import { NewChatPage } from '@/features/chats/NewChatPage'
 import { GroupsPage } from '@/features/groups/GroupsPage'
+import { StoriesPage } from '@/features/stories/StoriesPage'
 import { GroupRoomPage } from '@/features/groups/GroupRoomPage'
 import { GroupMediaPage } from '@/features/groups/GroupMediaPage'
 import { SettingsPage } from '@/features/settings/SettingsPage'
@@ -144,6 +145,7 @@ export default function App() {
                 <Route path=":chatId" element={<ChatPage />} />
               </Route>
               <Route path="/new-chat" element={<NewChatPage />} />
+              <Route path="/stories" element={<StoriesPage />} />
               <Route path="/groups" element={<GroupsPage />} />
               <Route path="/groups/:groupId" element={<GroupRoomPage />} />
               <Route path="/groups/:groupId/media" element={<GroupMediaPage />} />

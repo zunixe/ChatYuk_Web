@@ -1,6 +1,7 @@
 import {
   Archive,
   ArchiveRestore,
+  CirclePlay,
   MessageCircle,
   Plus,
   RefreshCw,
@@ -122,6 +123,14 @@ export function ChatsPage() {
           title={t('online.title')}
         >
           <Plus className="h-5 w-5" />
+        </Link>
+        <Link
+          to="/stories"
+          className="flex h-10 w-10 items-center justify-center rounded-xl text-muted transition hover:bg-panel hover:text-text"
+          aria-label={t('stories.title')}
+          title={t('stories.title')}
+        >
+          <CirclePlay className="h-5 w-5" />
         </Link>
         <Link
           to="/groups"

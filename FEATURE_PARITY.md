@@ -104,8 +104,8 @@ Prioritas: **P0** = dipakai harian, pengguna langsung merasakan · **P1** = pent
 
 | # | Fitur | Kontrak mobile | P | Estimasi kerja |
 |---|---|---|---|---|
-| C1 | Stories: viewer | Tabel `stories`, `story_views`, `story_likes`, `story_mutes` | P1 | Besar |
-| C2 | Stories: composer | Upload foto/video + teks (`story_composer_screen`) — web bisa pakai input file biasa | P1 | Sedang |
+| C1 ✅ | Stories: tray + viewer (auto-advance, like, mark-seen) | Tabel `stories`, `story_views`, `story_likes`, `story_mutes` | P1 | Besar |
+| C2 ✅ | Stories: composer (1 foto/video, caption, visibilitas) | Upload foto/video + teks (`story_composer_screen`) — web bisa pakai input file biasa | P1 | Sedang |
 | C3 | Timeline posts | Tabel `posts`, `post_likes`, `post_comments`, `post_shares` (`timeline_screen`, `post_detail_screen`) | P2 | Besar |
 | C4 | Nearby | `user_location_history` + geo (`nearby_screen`) — sensitif privasi, perlu keputusan | P2 | Sedang |
 | C5 | Leaderboard | `rpc('points_leaderboard')` | P2 | Kecil |

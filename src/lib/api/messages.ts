@@ -35,6 +35,18 @@ export async function listMessages(
   return rows
 }
 
+/**
+ * Perbarui payload lokasi LIVE di chat private (`text` JSON berisi lat/lng
+ * terbaru). Hanya pesan milik sendiri yang lolos RLS `messages_update_own`.
+ */
+export async function updatePrivateLocation(messageId: number, payload: string): Promise<void> {
+  const { error } = await supabase
+    .from('private_messages')
+    .update({ text: payload })
+    .eq('id', messageId)
+  if (error) throw error
+}
+
 export function mergeMessages(current: Message[], incoming: Message[]): Message[] {
   const map = new Map<string, Message>()
   for (const message of current) map.set(String(message.id), message)

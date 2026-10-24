@@ -28,6 +28,7 @@ import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Avatar } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import {
   DropdownMenu,
@@ -204,12 +205,14 @@ export function ChatPage() {
     handleVideoFile,
     toggleRecording,
     sendLocation,
+    startLiveLocation,
   } = media
 
   const [profileOpen, setProfileOpen] = useState(false)
   const [viewerSrc, setViewerSrc] = useState<string | null>(null)
   const [emojiOpen, setEmojiOpen] = useState(false)
   const [forwardTarget, setForwardTarget] = useState<Message | null>(null)
+  const [liveOpen, setLiveOpen] = useState(false)
   const starredIds = useStarredIds(myUid, 'private', chatId)
   const toggleStarMutation = useToggleStar(myUid, 'private', chatId)
   const [attachOpen, setAttachOpen] = useState(false)
@@ -451,6 +454,29 @@ export function ChatPage() {
           </DropdownMenu>
         </div>
       </header>
+
+      <Dialog open={liveOpen} onOpenChange={setLiveOpen}>
+        <DialogContent title={t('groups.liveDuration')} className="max-w-sm">
+          <div className="flex flex-col gap-1.5">
+            {[
+              { minutes: 15, label: t('groups.live15') },
+              { minutes: 60, label: t('groups.live60') },
+              { minutes: 480, label: t('groups.live480') },
+            ].map((option) => (
+              <Button
+                key={option.minutes}
+                variant="secondary"
+                onClick={() => {
+                  setLiveOpen(false)
+                  startLiveLocation(option.minutes)
+                }}
+              >
+                {option.label}
+              </Button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <ForwardDialog
         message={forwardTarget}
@@ -807,6 +833,17 @@ export function ChatPage() {
               >
                 <MapPin className="h-4 w-4 text-primary" />
                 {t('chat.location')}
+              </button>
+              <button
+                type="button"
+                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] text-text transition hover:bg-panel"
+                onClick={() => {
+                  setAttachOpen(false)
+                  setLiveOpen(true)
+                }}
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-online" />
+                {t('groups.liveLocation')}
               </button>
               <button
                 type="button"

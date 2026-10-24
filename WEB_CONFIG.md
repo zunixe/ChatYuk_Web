@@ -575,6 +575,7 @@ Backup terakhir: `/data/workspace/backups/pre-google-dev-1792540007.dump` (1.9 M
 | 2026-10-23 | Grup di web: list, explore, join, chat teks, realtime. Join server GRATIS (jangan tampilkan `join_paid`) |
 | 2026-10-23 | FEATURE_PARITY.md: peta gap fitur mobile vs web + urutan eksekusi disetujui |
 | 2026-10-23 | FEATURE_PARITY.md v2: + bagian 7 Paritas UI (token, tipografi, per layar). Diterapkan cepat: --online #4CAF50, --danger #F44336, reaksi +😁 |
+| 2026-10-24 | Fase C: B6 lokasi live chat private (durasi, refresh 30 dtk, badge LIVE) |
 | 2026-10-24 | Fase C: B4/B5 bintang pesan (starred_messages, private & room) |
 | 2026-10-24 | Fase C: B7 arsip chat (RPC archive_private_chat, toggle daftar arsip) |
 | 2026-10-24 | Fase C: B2 forward (chat & grup, is_forwarded) + B1 album (maks 10 foto, album_id) |

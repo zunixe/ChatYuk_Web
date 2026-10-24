@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { toast } from 'sonner'
-import { sendPrivateMessage } from '@/lib/api/messages'
+import { sendPrivateMessage, updatePrivateLocation } from '@/lib/api/messages'
 import { enqueueOutbox, isNetworkError } from '@/lib/outbox'
 import { hasValidMagicBytes, looksLikeExecutable } from '@/lib/upload-validate'
 import { MAX_FILE_BYTES, MAX_IMAGE_BYTES, MAX_VIDEO_BYTES, MAX_VIDEO_MS } from '@/lib/constants'
@@ -63,6 +63,7 @@ export function useMediaSend({
   const fileRef = useRef<HTMLInputElement>(null)
   const docRef = useRef<HTMLInputElement>(null)
   const videoRef = useRef<HTMLInputElement>(null)
+  const liveTimerRef = useRef<number | undefined>(undefined)
   const recorderRef = useRef<MediaRecorder | null>(null)
   const recorderChunksRef = useRef<Blob[]>([])
   const recordStartRef = useRef(0)
@@ -76,6 +77,7 @@ export function useMediaSend({
   useEffect(() => {
     return () => {
       if (recordTimerRef.current) window.clearInterval(recordTimerRef.current)
+      if (liveTimerRef.current) window.clearInterval(liveTimerRef.current)
     }
   }, [])
 
@@ -108,8 +110,8 @@ export function useMediaSend({
     voicePath?: string
     videoPoster?: string
     durationMs?: number
-  }) {
-    if (!chatId || !myUid || otherBlocked) return
+  }): Promise<Message | null> {
+    if (!chatId || !myUid || otherBlocked) return null
     try {
       const server = await sendPrivateMessage({
         chatId,
@@ -130,6 +132,7 @@ export function useMediaSend({
       clearReply()
       void queryClient.invalidateQueries({ queryKey: ['chats', myUid] })
       onSent()
+      return server
     } catch (error) {
       // Media sudah terunggah ke storage tetapi insert gagal → antrekan insert.
       if (isNetworkError(error) && chatId && myUid) {
@@ -151,12 +154,13 @@ export function useMediaSend({
           })
           clearReply()
           toast.info('Tidak ada koneksi. Media akan dikirim otomatis.')
-          return
+          return null
         } catch {
           // lanjut jalur error biasa
         }
       }
       toast.error(errorMessage(error))
+      return null
     }
   }
 
@@ -441,6 +445,61 @@ export function useMediaSend({
     )
   }
 
+  /**
+   * Bagikan LOKASI LIVE di chat private: kirim sekali lalu perbarui koordinat
+   * tiap 30 detik sampai `exp` lewat (paritas Android
+   * `_startLiveLocationUpdates` pada room / chat private).
+   */
+  function startLiveLocation(minutes: number) {
+    if (!chatId || blockedGuard()) return
+    if (!navigator.geolocation) {
+      toast.error('Perangkat tidak mendukung lokasi.')
+      return
+    }
+    const expiresAt = new Date(Date.now() + minutes * 60_000)
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const base = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          label: 'Lokasi saya',
+          caption: '',
+          live: true,
+          exp: expiresAt.toISOString(),
+          acc: Math.round(position.coords.accuracy),
+        }
+        void sendAttachment({ type: 'location', text: JSON.stringify(base) }).then((server) => {
+          if (!server) return
+          if (liveTimerRef.current) window.clearInterval(liveTimerRef.current)
+          liveTimerRef.current = window.setInterval(() => {
+            if (Date.now() > expiresAt.getTime()) {
+              if (liveTimerRef.current) window.clearInterval(liveTimerRef.current)
+              liveTimerRef.current = undefined
+              return
+            }
+            navigator.geolocation.getCurrentPosition(
+              (next) => {
+                void updatePrivateLocation(
+                  server.id,
+                  JSON.stringify({
+                    ...base,
+                    lat: next.coords.latitude,
+                    lng: next.coords.longitude,
+                    acc: Math.round(next.coords.accuracy),
+                  }),
+                ).catch(() => {})
+              },
+              () => {},
+              { enableHighAccuracy: true, timeout: 12000 },
+            )
+          }, 30_000)
+        })
+      },
+      () => toast.error('Gagal mengambil lokasi. Izinkan akses lokasi.'),
+      { enableHighAccuracy: true, timeout: 12000 },
+    )
+  }
+
   return {
     fileRef,
     docRef,
@@ -455,6 +514,7 @@ export function useMediaSend({
     sendSticker,
     toggleRecording,
     sendLocation,
+    startLiveLocation,
     tempId,
   }
 }

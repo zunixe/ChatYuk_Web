@@ -86,8 +86,8 @@ Prioritas: **P0** = dipakai harian, pengguna langsung merasakan · **P1** = pent
 
 | # | Fitur | Kontrak mobile | P | Estimasi kerja |
 |---|---|---|---|---|
-| B1 | Album (multi-foto) | `messages.album_id` (uuid) — kirim banyak image sekaligus, render berderet | P0 | Sedang: upload loop + render album |
-| B2 | Forward pesan | `messages.is_forwarded` + dialog pilih tujuan (chat/grup) | P0 | Kecil–sedang |
+| B1 ✅ | Album (multi-foto) | `messages.album_id` (uuid) — kirim banyak image sekaligus, render berderet | P0 | Sedang: upload loop + render album |
+| B2 ✅ | Forward pesan | `messages.is_forwarded` + dialog pilih tujuan (chat/grup) | P0 | Kecil–sedang |
 | B3 ✅ | Sticker picker (kirim) | Mobile kirim via `image_data` path storage sticker; web baru bisa **render**, belum kirim | P0 | Kecil: picker grid + insert |
 | B4 | Pin pesan | `starred_messages` tabel + `message_reaction_service.dart` L216-247 (pin ≠ star di mobile; cek ulang keduanya) | P1 | Kecil–sedang |
 | B5 | Starred messages UI | Tabel `starred_messages` — daftar pesan dibintangi | P1 | Sedang |

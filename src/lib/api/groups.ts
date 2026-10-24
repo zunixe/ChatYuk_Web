@@ -461,12 +461,13 @@ export async function sendRoomMedia(input: {
   senderId: string
   senderName: string
   senderGender: string | null
-  type: 'image' | 'video' | 'file' | 'voice' | 'location' | 'sticker'
+  type: 'image' | 'video' | 'file' | 'voice' | 'location' | 'sticker' | 'text'
   text: string
   imagePath?: string
   voicePath?: string
   videoPoster?: string
   durationMs?: number
+  isForwarded?: boolean
 }): Promise<number> {
   const { data, error } = await supabase.from('messages').insert({
     room_id: input.roomId,
@@ -481,6 +482,7 @@ export async function sendRoomMedia(input: {
     ...(input.voicePath ? { voice_path: input.voicePath } : {}),
     ...(input.videoPoster ? { video_poster: input.videoPoster } : {}),
     ...(input.durationMs != null ? { duration_ms: input.durationMs } : {}),
+    ...(input.isForwarded ? { is_forwarded: true } : {}),
   }).select('id').single()
   if (error) throw error
   return asNumber(asRecord(data).id)

@@ -38,6 +38,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Spinner, TypingDots } from '@/components/ui/feedback'
 import { MessageBubble } from '@/features/chat/MessageBubble'
 import { StickerPicker } from '@/features/chat/StickerPicker'
+import { ForwardDialog } from '@/features/chat/ForwardDialog'
+import { AlbumGrid } from '@/features/chat/AlbumGrid'
 import { ProfileDrawer } from '@/features/chat/ProfileDrawer'
 import {
   useAvatars,
@@ -187,6 +189,7 @@ export function ChatPage() {
   const [profileOpen, setProfileOpen] = useState(false)
   const [viewerSrc, setViewerSrc] = useState<string | null>(null)
   const [emojiOpen, setEmojiOpen] = useState(false)
+  const [forwardTarget, setForwardTarget] = useState<Message | null>(null)
   const [attachOpen, setAttachOpen] = useState(false)
   const retryingRef = useRef<Set<string>>(new Set())
 
@@ -419,6 +422,18 @@ export function ChatPage() {
         </div>
       </header>
 
+      <ForwardDialog
+        message={forwardTarget}
+        open={Boolean(forwardTarget)}
+        onOpenChange={(open) => {
+          if (!open) setForwardTarget(null)
+        }}
+        myUid={myUid}
+        myName={authProfile?.nickname ?? 'Kamu'}
+        myGender={authProfile?.gender ?? null}
+        onDone={() => setForwardTarget(null)}
+      />
+
       {!connected && chat ? (
         <div className="flex items-center justify-center gap-1.5 bg-amber-500/10 px-3 py-1 text-[10px] font-medium text-amber-700 dark:text-amber-300">
           <Loader2 className="h-3 w-3 animate-spin" />
@@ -494,6 +509,56 @@ export function ChatPage() {
                 const previous = messages[index - 1]
                 const showDay = !previous || !sameDay(previous.created_at, message.created_at)
                 const isMine = message.sender_id === myUid
+
+                // ALBUM: foto dengan `album_id` sama dirender sebagai SATU grid
+                // pada kemunculan pertama; sisanya dilewati.
+                const albumId = message.album_id ?? null
+                const isAlbumPhoto =
+                  Boolean(albumId) && message.type === 'image' && message.is_deleted !== true
+                if (isAlbumPhoto) {
+                  const prevAlbum = previous?.album_id ?? null
+                  if (prevAlbum === albumId) return null
+                  const albumMessages = messages.filter(
+                    (item) => item.album_id === albumId && item.type === 'image',
+                  )
+                  return (
+                    <Fragment key={`album-${albumId}`}>
+                      {showDay ? (
+                        <div className="flex justify-center py-2.5">
+                          <span className="rounded-full bg-surface/90 px-2.5 py-1 text-[9.5px] font-medium text-muted-2 shadow-sm">
+                            {new Date(message.created_at).toLocaleDateString('id-ID', {
+                              weekday: 'long',
+                              day: 'numeric',
+                              month: 'long',
+                            })}
+                          </span>
+                        </div>
+                      ) : null}
+                      <div
+                        className={cn(
+                          'flex w-full px-3 sm:px-6',
+                          isMine ? 'justify-end' : 'justify-start',
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            'max-w-[72%] overflow-hidden rounded-2xl border shadow-sm sm:max-w-[58%]',
+                            isMine
+                              ? 'rounded-tr-md border-primary/15 bg-bubble-out'
+                              : 'rounded-tl-md border-border/70 bg-bubble-in',
+                          )}
+                        >
+                          <AlbumGrid
+                            messages={albumMessages}
+                            isMine={isMine}
+                            onOpen={setViewerSrc}
+                          />
+                        </div>
+                      </div>
+                    </Fragment>
+                  )
+                }
+
                 return (
                   <Fragment key={message.temp_id ?? message.id}>
                     {showDay ? (
@@ -515,6 +580,7 @@ export function ChatPage() {
                       otherLastReadAt={otherLastReadAt}
                       onReply={handleReply}
                       onReact={(target, emoji) => void handleReact(target, emoji)}
+                      onForward={(target) => setForwardTarget(target)}
                       onRetry={(target) => void handleRetry(target)}
                       onEdit={(target) => void handleEdit(target)}
                       onDelete={(target) => void handleDelete(target)}
@@ -606,6 +672,7 @@ export function ChatPage() {
             ref={fileRef}
             type="file"
             accept="image/*"
+            multiple
             className="hidden"
             onChange={(event) => void handleImageFile(event)}
           />

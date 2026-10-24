@@ -25,6 +25,15 @@ import {
 import { messagePreview } from '@/lib/utils'
 import type { Message } from '@/lib/types'
 
+/** Buat id sementara + stempel waktu untuk pesan optimistis. */
+function newOptimisticMeta(): { temp: string; now: string; negativeId: number } {
+  return {
+    temp: tempId(),
+    now: new Date().toISOString(),
+    negativeId: -Date.now(),
+  }
+}
+
 function tempId(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID()
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`
@@ -152,10 +161,20 @@ export function useMediaSend({
   }
 
   async function handleImageFile(event: ChangeEvent<HTMLInputElement>, caption = '') {
-    const file = event.target.files?.[0]
+    const files = Array.from(event.target.files ?? [])
     if (fileRef.current) fileRef.current.value = ''
-    if (!file || !chatId || !myUid || imageBusy) return
+    if (files.length === 0 || !chatId || !myUid || imageBusy) return
     if (blockedGuard()) return
+
+    // ALBUM: >1 foto sekaligus → satu `album_id` untuk semua (grid, seperti
+    // Android). Maks 10 foto agar tidak membanjiri chat.
+    if (files.length > 1) {
+      await sendAlbum(files.slice(0, 10), caption)
+      return
+    }
+
+    const file: File = files[0]
+    const imageCaption: string = caption
     if (!file.type.startsWith('image/')) {
       toast.error('Pilih berkas gambar.')
       return
@@ -167,16 +186,17 @@ export function useMediaSend({
     }
 
     const localUrl = URL.createObjectURL(file)
-    const temp = tempId()
-    const now = new Date().toISOString()
+    const meta = newOptimisticMeta()
+    const temp = meta.temp
+    const now = meta.now
     const reply = replyTo
     const optimistic: Message = {
-      id: -Date.now(),
+      id: meta.negativeId,
       chat_id: chatId,
       sender_id: myUid,
       sender_name: senderName,
       sender_gender: senderGender,
-      text: caption,
+      text: imageCaption,
       type: 'image',
       image_data: localUrl,
       image_path: localUrl,
@@ -215,6 +235,49 @@ export function useMediaSend({
       toast.error(errorMessage(error))
     } finally {
       URL.revokeObjectURL(localUrl)
+      setImageBusy(false)
+    }
+  }
+
+  /**
+   * Kirim beberapa foto sebagai ALBUM: semua pesan `image` memakai
+   * `album_id` yang sama sehingga dirender jadi satu grid
+   * (paritas `private_chat_chat2.dart` — album maks 10 foto).
+   */
+  async function sendAlbum(files: File[], caption: string) {
+    if (!chatId || !myUid) return
+    setImageBusy(true)
+    const albumId = tempId()
+    const now = new Date().toISOString()
+    let first = true
+    try {
+      for (const file of files) {
+        if (!file.type.startsWith('image/')) continue
+        if (!(await validateUpload(file))) continue
+        if (file.size > MAX_IMAGE_BYTES) {
+          toast.error('Ukuran gambar maksimal 8 MB.')
+          continue
+        }
+        const path = await uploadChatImage(chatId, file)
+        const server = await sendPrivateMessage({
+          chatId,
+          senderId: myUid,
+          senderName,
+          senderGender,
+          text: first ? caption : '',
+          type: 'image',
+          imagePath: path,
+          albumId,
+        })
+        upsertMessageInCache(queryClient, chatId, server)
+        first = false
+      }
+      touchChatCache(queryClient, myUid, chatId, 'Foto', now)
+      void queryClient.invalidateQueries({ queryKey: ['chats', myUid] })
+      onSent()
+    } catch (error) {
+      toast.error(errorMessage(error))
+    } finally {
       setImageBusy(false)
     }
   }

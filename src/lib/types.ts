@@ -144,6 +144,8 @@ export interface SendMessageInput {
   voicePath?: string
   videoPoster?: string
   durationMs?: number
+  albumId?: string | null
+  isForwarded?: boolean
   repliedToId?: string | number | null
   repliedToText?: string | null
   repliedToSenderName?: string | null

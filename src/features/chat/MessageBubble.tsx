@@ -7,6 +7,7 @@ import {
   FileText,
   ImageOff,
   Pencil,
+  Share2,
   Trash2,
   MapPin,
   Mic,
@@ -73,6 +74,7 @@ interface MessageBubbleProps {
   onRetry: (message: Message) => void
   onEdit: (message: Message) => void
   onDelete: (message: Message) => void
+  onForward?: (message: Message) => void
   onOpenImage: (src: string) => void
   onMediaLoad: () => void
   /** True bila bubble dirender di room/grup (RPC poll berbeda). */
@@ -90,6 +92,7 @@ export function MessageBubble({
   onRetry,
   onEdit,
   onDelete,
+  onForward,
   onOpenImage,
   onMediaLoad,
   room = false,
@@ -155,6 +158,17 @@ export function MessageBubble({
           title="Edit"
         >
           <Pencil className="h-3.5 w-3.5" />
+        </button>
+      ) : null}
+      {onForward && !message.client_status ? (
+        <button
+          type="button"
+          onClick={() => onForward(message)}
+          className="flex h-7 w-7 items-center justify-center rounded-full bg-surface/80 text-muted-2 shadow-sm transition hover:bg-surface hover:text-text"
+          aria-label="Teruskan pesan"
+          title="Teruskan"
+        >
+          <Share2 className="h-3.5 w-3.5" />
         </button>
       ) : null}
       {isMine && !message.client_status ? (

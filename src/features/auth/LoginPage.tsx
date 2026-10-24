@@ -97,6 +97,15 @@ export function LoginPage() {
           </div>
         </div>
 
+        <div className="flex justify-end">
+          <Link
+            to="/reset-password"
+            className="text-[11.5px] font-medium text-primary transition hover:text-primary-strong"
+          >
+            {t('auth.forgot')}
+          </Link>
+        </div>
+
         <Button type="submit" className="mt-1 w-full" size="lg" disabled={loading}>
           {loading ? <Spinner /> : null}
           {loading ? t('auth.signingIn') : t('auth.signIn')}

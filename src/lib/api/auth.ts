@@ -68,6 +68,27 @@ export async function markProfileRegistered(uid: string, email: string): Promise
 }
 
 /**
+ * Kirim email reset password. `redirectTo` menunjuk halaman web yang
+ * menangani sesi recovery (Supabase menaruh token di URL).
+ */
+export async function sendPasswordResetEmail(email: string): Promise<void> {
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+    redirectTo: `${window.location.origin}/reset-password`,
+  })
+  if (error) throw error
+}
+
+/**
+ * Set password baru memakai sesi RECOVERY (dari tautan email) — tanpa
+ * password lama. Dipakai halaman `/reset-password`.
+ */
+export async function updatePassword(newPassword: string): Promise<void> {
+  if (newPassword.length < 6) throw new Error('Password minimal 6 karakter.')
+  const { error } = await supabase.auth.updateUser({ password: newPassword })
+  if (error) throw error
+}
+
+/**
  * Ganti password akun email. Verifikasi password lama dulu (sama seperti
  * mobile: signInWithPassword lalu updateUser) agar sesi tidak bisa
  * dibajak untuk mengganti password tanpa tahu yang lama.

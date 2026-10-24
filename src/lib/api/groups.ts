@@ -461,7 +461,7 @@ export async function sendRoomMedia(input: {
   senderId: string
   senderName: string
   senderGender: string | null
-  type: 'image' | 'video' | 'file' | 'voice' | 'location'
+  type: 'image' | 'video' | 'file' | 'voice' | 'location' | 'sticker'
   text: string
   imagePath?: string
   voicePath?: string
@@ -475,7 +475,8 @@ export async function sendRoomMedia(input: {
     sender_gender: input.senderGender ?? '',
     text: input.text,
     type: input.type,
-    image_data: input.type === 'voice' || input.type === 'location' ? '' : (input.imagePath ?? ''),
+    image_data:
+      input.type === 'voice' || input.type === 'location' ? '' : (input.imagePath ?? ''),
     ...(input.imagePath ? { image_path: input.imagePath } : {}),
     ...(input.voicePath ? { voice_path: input.voicePath } : {}),
     ...(input.videoPoster ? { video_poster: input.videoPoster } : {}),

@@ -85,7 +85,7 @@ export function useGroupMediaSend({
   }
 
   async function send(input: {
-    type: 'image' | 'video' | 'file' | 'voice' | 'location'
+    type: 'image' | 'video' | 'file' | 'voice' | 'location' | 'sticker'
     text: string
     imagePath?: string
     voicePath?: string
@@ -293,6 +293,11 @@ export function useGroupMediaSend({
       .catch(() => toast.error('Tidak bisa mengakses mikrofon.'))
   }
 
+  /** Kirim stiker ke grup (`type='sticker'`, `image_data` = path). */
+  function sendSticker(path: string) {
+    void send({ type: 'sticker', text: '', imagePath: path })
+  }
+
   function sendLocation() {
     if (!roomId) return
     if (!navigator.geolocation) {
@@ -328,6 +333,7 @@ export function useGroupMediaSend({
     handleVideo,
     toggleRecording,
     sendLocation,
+    sendSticker,
     startLiveLocation,
   }
 }

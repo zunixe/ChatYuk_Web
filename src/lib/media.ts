@@ -37,6 +37,19 @@ export function resolveAvatar(value: string | null | undefined): string | null {
   return null
 }
 
+/** Daftar stiker milik user (`stickers/<uid>/...`), terbaru dulu. */
+export async function listMyStickers(uid: string): Promise<string[]> {
+  const { data, error } = await supabase.storage.from(BUCKET).list(`stickers/${uid}`, {
+    limit: 200,
+    sortBy: { column: 'created_at', order: 'desc' },
+  })
+  if (error) return []
+  return (data ?? [])
+    .map((item) => item.name)
+    .filter((name) => /\.(png|jpe?g|webp|gif)$/i.test(name))
+    .map((name) => `stickers/${uid}/${name}`)
+}
+
 /** Path storage / URL http / data URL → URL yang aman ditampilkan. */
 export function mediaUrl(path: string | null | undefined): string | null {
   const value = (path ?? '').trim()

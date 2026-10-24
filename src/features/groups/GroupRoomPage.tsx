@@ -29,6 +29,7 @@ import { cn } from '@/lib/utils'
 import type { RoomMessage } from '@/lib/api/groups'
 import { GroupInfoPanel } from '@/features/groups/GroupInfoPanel'
 import { MessageBubble } from '@/features/chat/MessageBubble'
+import { StickerPicker } from '@/features/chat/StickerPicker'
 import { useGroupMediaSend } from '@/hooks/useGroupMediaSend'
 import type { Message } from '@/lib/types'
 import { supabase } from '@/lib/supabase'
@@ -254,6 +255,10 @@ export function GroupRoomPage() {
           >
             {media.imageBusy ? <Spinner /> : <ImagePlus className="h-[18px] w-[18px]" />}
           </button>
+          <StickerPicker
+            myUid={myUid}
+            onPick={(path) => media.sendSticker(path)}
+          />
           <button
             type="button"
             onClick={() => media.docRef.current?.click()}

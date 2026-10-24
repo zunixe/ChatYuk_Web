@@ -219,6 +219,27 @@ export function useMediaSend({
     }
   }
 
+  /** Kirim stiker (path storage `stickers/<uid>/...`) — kontrak Android. */
+  async function sendSticker(path: string) {
+    if (!chatId || !myUid || otherBlocked) return
+    try {
+      const server = await sendPrivateMessage({
+        chatId,
+        senderId: myUid,
+        senderName,
+        senderGender,
+        text: '',
+        type: 'sticker',
+        imagePath: path,
+      })
+      upsertMessageInCache(queryClient, chatId, server)
+      void queryClient.invalidateQueries({ queryKey: ['chats', myUid] })
+      onSent()
+    } catch (error) {
+      toast.error(errorMessage(error))
+    }
+  }
+
   async function handleDocFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
     if (docRef.current) docRef.current.value = ''
@@ -368,6 +389,7 @@ export function useMediaSend({
     handleImageFile,
     handleDocFile,
     handleVideoFile,
+    sendSticker,
     toggleRecording,
     sendLocation,
     tempId,

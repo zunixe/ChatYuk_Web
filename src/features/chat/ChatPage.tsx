@@ -37,6 +37,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Spinner, TypingDots } from '@/components/ui/feedback'
 import { MessageBubble } from '@/features/chat/MessageBubble'
+import { StickerPicker } from '@/features/chat/StickerPicker'
 import { ProfileDrawer } from '@/features/chat/ProfileDrawer'
 import {
   useAvatars,
@@ -177,6 +178,7 @@ export function ChatPage() {
     recordSecs,
     handleImageFile,
     handleDocFile,
+    sendSticker,
     handleVideoFile,
     toggleRecording,
     sendLocation,
@@ -725,6 +727,12 @@ export function ChatPage() {
           >
             {imageBusy ? <Spinner /> : <ImagePlus className="h-[19px] w-[19px]" />}
           </button>
+
+          <StickerPicker
+            myUid={myUid}
+            disabled={otherBlocked}
+            onPick={(path) => void sendSticker(path)}
+          />
 
           <div className="flex min-w-0 flex-1 items-end">
             <textarea

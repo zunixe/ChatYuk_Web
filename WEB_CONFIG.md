@@ -423,10 +423,12 @@ bind/koneksi — pola khas proses dihentikan dari luar.
 | `chatyuk-supabase.service` | `supabase start`/`stop` otomatis saat VM boot/shutdown (`oneshot`, idempotent) |
 | `chatyuk-web.service` | Caddy `:8080`, `Restart=always` |
 | `ngrok.service` | tunnel publik |
+| `ngrok-watch.timer` | tiap 2 menit probe **URL publik** (`/auth/v1/health`); bila bukan 200 → `systemctl restart ngrok`. Menangkap kasus "proses hidup tapi tunnel mati" (ERR_NGROK_3200) |
 
 Skrip pendukung:
 - `/usr/local/bin/chatyuk-keepalive.sh` — loop keep-alive, log ke `/tmp/chatyuk-keepalive.log` (maks 2000 baris).
 - `/usr/local/bin/chatyuk-status` — ringkasan status satu perintah.
+- `/usr/local/bin/ngrok-watch` — probe publik + auto-restart ngrok, log ke `/tmp/ngrok-watch.log`.
 
 ### Cara cek
 
@@ -436,6 +438,25 @@ ssh -p 2222 ... 'tail -20 /tmp/chatyuk-keepalive.log'
 ```
 
 Log keep-alive menampilkan `web=<kode> auth=<kode> load=<n>` per menit.
+
+Cek kesehatan tunnel publik:
+
+```bash
+ssh -p 2222 ... 'tail -5 /tmp/ngrok-watch.log'
+ssh -p 2222 ... 'systemctl list-timers ngrok-watch.timer --no-pager'
+```
+
+Baris `PUBLIC=200 ok` = tunnel sehat. Bila muncul `-> restart ngrok`, watchdog sudah mencoba memulihkan otomatis.
+
+### Insiden: ERR_NGROK_3200 (2026-10-24)
+
+Gejala: URL publik mengembalikan **HTTP 404 ERR_NGROK_3200 "endpoint offline"**, termasuk
+`/auth/v1/authorize` → login Google gagal. Penyebab: proses `ngrok` **aktif** dan API
+lokal `:4040` masih mendaftarkan tunnel, tetapi edge ngrok menganggap endpoint offline
+(sesi basi) — sehingga `chatyuk-keepalive` (yang hanya mengecek lokal) tidak mendeteksi.
+
+Perbaikan: `sudo systemctl restart ngrok`. Pencegahan permanen: `ngrok-watch.timer`
+di atas, yang memeriksa **dari luar** (URL publik), bukan dari dalam VM.
 
 ### Batasan yang perlu diketahui
 
@@ -532,6 +553,7 @@ Backup terakhir: `/data/workspace/backups/pre-google-dev-1792540007.dump` (1.9 M
 | 2026-10-23 | Grup di web: list, explore, join, chat teks, realtime. Join server GRATIS (jangan tampilkan `join_paid`) |
 | 2026-10-23 | FEATURE_PARITY.md: peta gap fitur mobile vs web + urutan eksekusi disetujui |
 | 2026-10-23 | FEATURE_PARITY.md v2: + bagian 7 Paritas UI (token, tipografi, per layar). Diterapkan cepat: --online #4CAF50, --danger #F44336, reaksi +😁 |
+| 2026-10-24 | Insiden ERR_NGROK_3200 (tunnel basi): restart ngrok + pasang `ngrok-watch.timer` (probe publik tiap 2 menit, auto-restart) |
 | 2026-10-22 | Fallback media: web auto signed URL saat URL publik ditolak (uji bucket privat PASS). Android tidak memakai URL publik — aman |
 | 2026-10-21 | Perbaikan `presence_for`: `invisible_admin_uid` text kosong → cast uuid gagal (POST 400 di `/rest/v1/rpc/presence_for`). Fungsi live di-replace dari `20261020150000_fix_presence_for_invisible_uid.sql` |
 | 2026-10-21 | Perbaikan `auth.users` seed: kolom token NULL → GoTrue admin API 500 `converting NULL to string` |

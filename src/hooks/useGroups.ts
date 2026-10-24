@@ -10,6 +10,7 @@ import {
   fetchMyPoints,
   fetchRoom,
   fetchRoomExplore,
+  fetchRoomMediaPaths,
   fetchRoomMembers,
   fetchRoomMessages,
   fetchRoomPricing,
@@ -250,5 +251,13 @@ export function useDeleteRoom(myUid: string | undefined) {
       void queryClient.invalidateQueries({ queryKey: ['groups'] })
       void queryClient.invalidateQueries({ queryKey: ['points', myUid] })
     },
+  })
+}
+
+export function useRoomMedia(roomId: string | undefined) {
+  return useQuery({
+    queryKey: ['groups', 'media', roomId],
+    enabled: Boolean(roomId),
+    queryFn: () => fetchRoomMediaPaths(roomId as string),
   })
 }

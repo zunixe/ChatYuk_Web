@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
-import { Check, Crown, LogOut, Shield, Trash2, UserMinus, UserPlus, X } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Check, Copy, Crown, Images, LogOut, Shield, Trash2, UserMinus, UserPlus, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -77,6 +77,7 @@ export function GroupInfoPanel({
   const [inviteTerm, setInviteTerm] = useState('')
   const [password, setPassword] = useState('')
   const search = useUserSearch(inviteTerm, myUid)
+  const joinCode = room.data?.joinToken ?? ''
 
   const memberIds = new Set((members.data ?? []).map((m) => m.userId))
   const candidates = (search.data ?? []).filter((p) => !memberIds.has(p.id)).slice(0, 6)
@@ -368,6 +369,48 @@ export function GroupInfoPanel({
                   </Button>
                 ) : null}
               </div>
+            </div>
+          </section>
+        ) : null}
+
+        {/* A9: galeri media */}
+        <section className="mt-5">
+          <Link
+            to={`/groups/${roomId}/media`}
+            onClick={() => onOpenChange(false)}
+            className="flex items-center gap-2.5 rounded-xl border border-border bg-panel px-3 py-2.5 text-[12.5px] text-text transition hover:border-primary/40"
+          >
+            <Images className="h-4 w-4 text-primary" />
+            {t('groups.media')}
+          </Link>
+        </section>
+
+        {/* A10: kode gabung (read-only — rotasi khusus admin) */}
+        {canModerate ? (
+          <section className="mt-4">
+            <h3 className="text-[11px] font-medium uppercase tracking-wide text-muted-2">
+              {t('groups.joinCodeTitle')}
+            </h3>
+            <p className="mt-1 text-[10.5px] text-muted-2">{t('groups.joinCodeHint')}</p>
+            <div className="mt-1.5 flex items-center gap-1.5">
+              <code className="min-w-0 flex-1 truncate rounded-lg bg-panel px-2.5 py-1.5 font-mono text-[11.5px] text-text">
+                {joinCode || '—'}
+              </code>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={!joinCode}
+                onClick={() => {
+                  const link = `${window.location.origin}/groups/${roomId}?t=${joinCode}`
+                  void navigator.clipboard.writeText(link).then(
+                    () => toast.success(t('groups.copied')),
+                    () => toast.error(t('groups.actionFailed')),
+                  )
+                }}
+              >
+                <Copy className="h-3.5 w-3.5" />
+                {t('groups.copyLink')}
+              </Button>
             </div>
           </section>
         ) : null}

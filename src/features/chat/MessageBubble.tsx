@@ -16,13 +16,13 @@ import {
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { messageImageSrc, storagePublicUrl } from '@/lib/media'
+import { mediaUrl, messageImageSrc } from '@/lib/media'
 import { SafeImage } from '@/components/ui/safe-image'
 import { ViewOnceCard } from '@/features/chat/ViewOnceCard'
 import { PollCard } from '@/features/chat/PollCard'
 import { useNow } from '@/hooks/useNow'
 import { isViewOnceFamily } from '@/lib/view-once'
-import { safeMapUrl, safeMediaUrl, safePhoneHref, safePhoneLabel } from '@/lib/url-safety'
+import { safeMapUrl, safePhoneHref, safePhoneLabel } from '@/lib/url-safety'
 import { formatMessageTime } from '@/lib/time'
 import { cn, messagePreview } from '@/lib/utils'
 import type { Message, Reaction } from '@/lib/types'
@@ -58,16 +58,6 @@ function formatBytes(value: number | null | undefined): string {
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
-
-function mediaUrl(path: string | null | undefined): string | null {
-  const value = (path ?? '').trim()
-  if (!value) return null
-  // Skema berbahaya (javascript:, file:, data:text/html) ditolak di sini.
-  if (value.startsWith('http') || value.startsWith('data:') || value.startsWith('blob:')) {
-    return safeMediaUrl(value)
-  }
-  return safeMediaUrl(storagePublicUrl(value))
 }
 
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏', '😁']

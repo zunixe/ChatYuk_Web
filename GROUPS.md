@@ -75,8 +75,15 @@ Sudah:
   `_startLiveLocationUpdates`). Bubble menampilkan badge **LIVE** +
   "Live · sampai HH.MM".
 
+- **galeri media grup (A9)**: `/groups/:id/media` — kumpulan `messages.image_path`
+  unik (terbaru dulu, maks 200), grid + preview layar penuh.
+- **kode gabung (A10)**: panel info menampilkan `rooms.join_token` (read-only)
+  + tombol salin tautan `…/groups/<id>?t=<token>`. Payload QR Android:
+  `chatyuk://room/join?id=<id>&t=<token>`.
+
 Belum: **buat poll dari web** (chat private web juga belum punya, jadi
-paritas), voice room, galeri media grup (A9), QR (A10), ubah nama/deskripsi grup (mobile juga belum punya), upload
+paritas), voice room, **rotasi token** (policy `rooms_update` hanya admin →
+owner `UPDATE 0`, terverifikasi), pemindai QR (`jsQR` bisa ditambah nanti)., ubah nama/deskripsi grup (mobile juga belum punya), upload
 ikon gambar (mobile pakai storage `room-icons`).
 
 ### Path storage media grup — WAJIB `room_<roomId>`

@@ -37,6 +37,17 @@ export function resolveAvatar(value: string | null | undefined): string | null {
   return null
 }
 
+/** Path storage / URL http / data URL → URL yang aman ditampilkan. */
+export function mediaUrl(path: string | null | undefined): string | null {
+  const value = (path ?? '').trim()
+  if (!value) return null
+  // Skema berbahaya (javascript:, file:, data:text/html) ditolak di sini.
+  if (value.startsWith('http') || value.startsWith('data:') || value.startsWith('blob:')) {
+    return safeMediaUrl(value)
+  }
+  return safeMediaUrl(storagePublicUrl(value))
+}
+
 export function messageImageSrc(message: Message): string | null {
   const path = (message.image_path ?? '').trim()
   if (path) {

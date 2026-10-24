@@ -36,6 +36,7 @@ export interface Room {
   lastSenderName: string | null
   liveUid: string | null
   muted: boolean
+  joinToken: string | null
 }
 
 export interface RoomPricing {
@@ -106,6 +107,7 @@ function mapRoom(raw: unknown, myUid?: string): Room {
     lastSenderName: typeof row.last_sender_name === 'string' ? row.last_sender_name : null,
     liveUid: typeof row.live_uid === 'string' ? row.live_uid : null,
     muted: myUid ? mutedBy.includes(myUid) : false,
+    joinToken: typeof row.join_token === 'string' ? row.join_token : null,
   }
 }
 
@@ -167,7 +169,7 @@ export async function fetchRoom(roomId: string, myUid?: string): Promise<Room | 
   const { data, error } = await supabase
     .from('rooms')
     .select(
-      'id, name, description, icon, "order", country, category, is_private, owner_id, owner_name, has_password, approval_required, max_members, expires_at, created_at, muted_by',
+      'id, name, description, icon, "order", country, category, is_private, owner_id, owner_name, has_password, approval_required, max_members, expires_at, created_at, muted_by, join_token',
     )
     .eq('id', roomId)
     .maybeSingle()
@@ -488,6 +490,34 @@ export async function updateRoomLocation(messageId: number, payload: string): Pr
   const { error } = await supabase.from('messages').update({ text: payload }).eq('id', messageId)
   if (error) throw error
 }
+
+/** Galeri media grup: path `image_path` unik, terbaru dulu (maks 200). */
+export async function fetchRoomMediaPaths(roomId: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('messages')
+    .select('image_path, type')
+    .eq('room_id', roomId)
+    .neq('image_path', '')
+    .in('type', ['image', 'video', 'video_once'])
+    .order('created_at', { ascending: false })
+    .limit(200)
+  if (error) throw error
+  const seen = new Set<string>()
+  const paths: string[] = []
+  for (const raw of data ?? []) {
+    const path = asString(asRecord(raw).image_path)
+    if (!path || seen.has(path)) continue
+    seen.add(path)
+    paths.push(path)
+  }
+  return paths
+}
+
+/**
+ * Catatan: rotasi `join_token` TIDAK tersedia — policy `rooms_update`
+ * hanya mengizinkan admin (email `zunixe@gmail.com`), owner mendapat
+ * `UPDATE 0`. Token ditampilkan read-only.
+ */
 
 /** Saldo poin saya (cermin ledger; server sumber kebenaran). */
 export async function fetchMyPoints(uid: string): Promise<number> {

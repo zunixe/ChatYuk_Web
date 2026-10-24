@@ -14,6 +14,7 @@ import { OnboardingPage } from '@/features/auth/OnboardingPage'
 import { NewChatPage } from '@/features/chats/NewChatPage'
 import { GroupsPage } from '@/features/groups/GroupsPage'
 import { GroupRoomPage } from '@/features/groups/GroupRoomPage'
+import { GroupMediaPage } from '@/features/groups/GroupMediaPage'
 import { SettingsPage } from '@/features/settings/SettingsPage'
 import { needsOnboarding, useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
@@ -145,6 +146,7 @@ export default function App() {
               <Route path="/new-chat" element={<NewChatPage />} />
               <Route path="/groups" element={<GroupsPage />} />
               <Route path="/groups/:groupId" element={<GroupRoomPage />} />
+              <Route path="/groups/:groupId/media" element={<GroupMediaPage />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/chats" replace />} />

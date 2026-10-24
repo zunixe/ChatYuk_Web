@@ -307,6 +307,138 @@ export async function createRoom(input: {
   }
 }
 
+export type RoomRole = 'owner' | 'admin' | 'member' | null
+
+export interface RoomMember {
+  userId: string
+  nickname: string
+  gender: string | null
+  status: string | null
+  role: RoomRole
+  joinedAt: string | null
+  lastSeen: string | null
+  broadcastGranted: boolean
+}
+
+export interface JoinRequest {
+  userId: string
+  nickname: string
+  requestedAt: string | null
+}
+
+/** Peran saya di grup (server: `fn_room_role`). */
+export async function fetchMyRoomRole(roomId: string, uid: string): Promise<RoomRole> {
+  const { data, error } = await supabase.rpc('fn_room_role', { p_uid: uid, p_room_id: roomId })
+  if (error) return null
+  const role = typeof data === 'string' ? data : null
+  return role === 'owner' || role === 'admin' || role === 'member' ? role : null
+}
+
+/** Anggota grup (owner dulu, lalu admin, lalu member). */
+export async function fetchRoomMembers(roomId: string): Promise<RoomMember[]> {
+  const { data, error } = await supabase.rpc('list_room_members_v2', { p_room_id: roomId })
+  if (error) throw error
+  return (Array.isArray(data) ? data : []).map((raw) => {
+    const row = asRecord(raw)
+    const role = asString(row.role)
+    return {
+      userId: asString(row.user_id),
+      nickname: asString(row.nickname, 'Tanpa nama'),
+      gender: typeof row.gender === 'string' ? row.gender : null,
+      status: typeof row.status === 'string' ? row.status : null,
+      role: role === 'owner' || role === 'admin' || role === 'member' ? role : null,
+      joinedAt: typeof row.joined_at === 'string' ? row.joined_at : null,
+      lastSeen: typeof row.last_seen === 'string' ? row.last_seen : null,
+      broadcastGranted: Boolean(row.broadcast_granted),
+    }
+  })
+}
+
+/**
+ * Antrean permintaan bergabung. RPC ini dijaga server — hanya owner/admin
+ * yang boleh; selain itu error. Pemanggil harus menangani errornya.
+ */
+export async function fetchJoinRequests(roomId: string): Promise<JoinRequest[]> {
+  const { data, error } = await supabase.rpc('list_room_join_requests', { p_room_id: roomId })
+  if (error) throw error
+  return (Array.isArray(data) ? data : []).map((raw) => {
+    const row = asRecord(raw)
+    return {
+      userId: asString(row.user_id),
+      nickname: asString(row.nickname, 'Tanpa nama'),
+      requestedAt: typeof row.requested_at === 'string' ? row.requested_at : null,
+    }
+  })
+}
+
+export async function approveJoinRequest(roomId: string, uid: string): Promise<void> {
+  const { error } = await supabase.rpc('approve_join_request', { p_room_id: roomId, p_uid: uid })
+  if (error) throw error
+}
+
+export async function rejectJoinRequest(roomId: string, uid: string): Promise<void> {
+  const { error } = await supabase.rpc('reject_join_request', { p_room_id: roomId, p_uid: uid })
+  if (error) throw error
+}
+
+export async function kickRoomMember(roomId: string, uid: string): Promise<void> {
+  const { error } = await supabase.rpc('kick_room_member', { p_room_id: roomId, p_uid: uid })
+  if (error) throw error
+}
+
+/** Undang langsung jadi anggota (bypass approval; owner/admin saja). */
+export async function inviteToRoom(roomId: string, uid: string): Promise<void> {
+  const { error } = await supabase.rpc('invite_to_room', { p_room_id: roomId, p_uid: uid })
+  if (error) throw error
+}
+
+export async function setRoomMemberRole(
+  roomId: string,
+  uid: string,
+  role: 'admin' | 'member',
+): Promise<void> {
+  const { error } = await supabase.rpc('set_member_role', {
+    p_room_id: roomId,
+    p_uid: uid,
+    p_role: role,
+  })
+  if (error) throw error
+}
+
+/** Ganti ikon grup (emoji) — owner/admin. */
+export async function updateRoomIcon(roomId: string, icon: string): Promise<void> {
+  const { data, error } = await supabase.rpc('update_room_icon', {
+    p_room_id: roomId,
+    p_icon: icon,
+  })
+  if (error) throw error
+  const row = asRecord(data)
+  if (row.ok === false) throw new Error(asString(row.reason, 'Gagal mengganti ikon.'))
+}
+
+/** Set password baru; `null` menghapus password. */
+export async function resetRoomPassword(roomId: string, newPassword: string | null): Promise<void> {
+  const { data, error } = await supabase.rpc('reset_room_password', {
+    p_room_id: roomId,
+    p_new_password: newPassword,
+  })
+  if (error) throw error
+  const row = asRecord(data)
+  if (row.ok === false) throw new Error(asString(row.reason, 'Gagal mengubah password.'))
+}
+
+/** Perpanjang masa aktif grup (berbayar, dipotong server). */
+export async function extendRoom(roomId: string): Promise<{ points: number }> {
+  const { data, error } = await supabase.rpc('extend_private_room', { p_room_id: roomId })
+  if (error) throw error
+  return { points: asNumber(asRecord(data).points) }
+}
+
+export async function deleteRoom(roomId: string): Promise<void> {
+  const { error } = await supabase.rpc('delete_private_room', { p_room_id: roomId })
+  if (error) throw error
+}
+
 /** Saldo poin saya (cermin ledger; server sumber kebenaran). */
 export async function fetchMyPoints(uid: string): Promise<number> {
   const { data, error } = await supabase

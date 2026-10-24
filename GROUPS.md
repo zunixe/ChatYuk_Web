@@ -55,8 +55,34 @@ Sudah:
   `kGroupIcons` Android), opsi password (6–20), tampil biaya dari
   `room_pricing()`, tangani `duplicate: true`, dan tampilkan `join_token`
 
-Belum: media di grup, voice room, poll, approval UI (A3), kelola anggota
-(A2), info/edit grup (A4), extend/hapus (A5).
+- **panel Info grup (A2+A3+A4+A5)**: daftar anggota + role, kick, jadikan
+  admin/anggota, undang lewat pencarian profil, approve/reject permintaan
+  gabung, ganti ikon emoji, atur/hapus password, perpanjang, hapus grup,
+  keluar grup. Tombol dimoderasi hanya muncul untuk owner/admin; server
+  tetap penegak akhir.
+
+Belum: media di grup, voice room, poll, ubah nama/deskripsi grup (mobile
+juga belum punya), upload ikon gambar (mobile pakai storage `room-icons`).
+
+### Pemetaan RPC panel info
+
+| Aksi | RPC |
+|---|---|
+| Peran saya | `fn_room_role(p_uid, p_room_id)` → `owner`/`admin`/`member`/null |
+| Anggota | `list_room_members_v2(p_room_id)` → `{user_id,nickname,gender,status,role,joined_at,last_seen}` |
+| Permintaan | `list_room_join_requests(p_room_id)` → `{user_id,nickname,requested_at}` (owner/admin saja; selain itu error) |
+| Approve / reject | `approve_join_request` / `reject_join_request(p_room_id,p_uid)` |
+| Kick | `kick_room_member(p_room_id,p_uid)` |
+| Undang | `invite_to_room(p_room_id,p_uid)` (bypass approval) |
+| Role | `set_member_role(p_room_id,p_uid,p_role)` |
+| Ikon | `update_room_icon(p_room_id,p_icon)` → `{ok,reason?}` |
+| Password | `reset_room_password(p_room_id,p_new_password)`; `null` = hapus |
+| Perpanjang | `extend_private_room(p_room_id)` → `{points}` |
+| Hapus | `delete_private_room(p_room_id)` |
+
+**Penting:** `rooms_update` policy hanya mengizinkan admin (email
+`zunixe@gmail.com`) — jadi Owner **tidak bisa** mengubah `name`/`description`
+lewat UPDATE langsung. Edit nama/deskripsi memang belum ada di mobile juga.
 
 ### Catatan implementasi buat grup
 

@@ -1,17 +1,29 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
+  approveJoinRequest,
   createRoom,
+  deleteRoom,
+  extendRoom,
+  fetchJoinRequests,
   fetchMyGroups,
+  fetchMyRoomRole,
   fetchMyPoints,
   fetchRoom,
   fetchRoomExplore,
+  fetchRoomMembers,
   fetchRoomMessages,
   fetchRoomPricing,
+  inviteToRoom,
   isRoomMember,
   joinRoom,
+  kickRoomMember,
   leaveRoom,
   markRoomRead,
+  rejectJoinRequest,
+  resetRoomPassword,
   sendRoomMessage,
+  setRoomMemberRole,
+  updateRoomIcon,
 } from '@/lib/api/groups'
 
 const ROOM_PAGE_SIZE = 50
@@ -126,5 +138,117 @@ export function useSendRoomMessage(roomId: string | undefined) {
 export function useMarkRoomRead() {
   return useMutation({
     mutationFn: (roomId: string) => markRoomRead(roomId),
+  })
+}
+
+export function useMyRoomRole(roomId: string | undefined, myUid: string | undefined) {
+  return useQuery({
+    queryKey: ['groups', 'role', roomId, myUid],
+    enabled: Boolean(roomId && myUid),
+    queryFn: () => fetchMyRoomRole(roomId as string, myUid as string),
+  })
+}
+
+export function useRoomMembers(roomId: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: ['groups', 'members', roomId],
+    enabled: Boolean(roomId) && enabled,
+    queryFn: () => fetchRoomMembers(roomId as string),
+  })
+}
+
+export function useJoinRequests(roomId: string | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: ['groups', 'requests', roomId],
+    enabled: Boolean(roomId) && enabled,
+    retry: false,
+    queryFn: () => fetchJoinRequests(roomId as string),
+  })
+}
+
+function useRoomInfoInvalidate(roomId: string | undefined, myUid: string | undefined) {
+  const queryClient = useQueryClient()
+  return () => {
+    void queryClient.invalidateQueries({ queryKey: ['groups', 'members', roomId] })
+    void queryClient.invalidateQueries({ queryKey: ['groups', 'requests', roomId] })
+    void queryClient.invalidateQueries({ queryKey: ['groups', 'room', roomId] })
+    void queryClient.invalidateQueries({ queryKey: ['groups', 'mine', myUid] })
+    void queryClient.invalidateQueries({ queryKey: ['points', myUid] })
+  }
+}
+
+export function useApproveJoinRequest(roomId: string | undefined, myUid: string | undefined) {
+  const invalidate = useRoomInfoInvalidate(roomId, myUid)
+  return useMutation({
+    mutationFn: (uid: string) => approveJoinRequest(roomId as string, uid),
+    onSuccess: invalidate,
+  })
+}
+
+export function useRejectJoinRequest(roomId: string | undefined, myUid: string | undefined) {
+  const invalidate = useRoomInfoInvalidate(roomId, myUid)
+  return useMutation({
+    mutationFn: (uid: string) => rejectJoinRequest(roomId as string, uid),
+    onSuccess: invalidate,
+  })
+}
+
+export function useKickRoomMember(roomId: string | undefined, myUid: string | undefined) {
+  const invalidate = useRoomInfoInvalidate(roomId, myUid)
+  return useMutation({
+    mutationFn: (uid: string) => kickRoomMember(roomId as string, uid),
+    onSuccess: invalidate,
+  })
+}
+
+export function useInviteToRoom(roomId: string | undefined, myUid: string | undefined) {
+  const invalidate = useRoomInfoInvalidate(roomId, myUid)
+  return useMutation({
+    mutationFn: (uid: string) => inviteToRoom(roomId as string, uid),
+    onSuccess: invalidate,
+  })
+}
+
+export function useSetRoomMemberRole(roomId: string | undefined, myUid: string | undefined) {
+  const invalidate = useRoomInfoInvalidate(roomId, myUid)
+  return useMutation({
+    mutationFn: ({ uid, role }: { uid: string; role: 'admin' | 'member' }) =>
+      setRoomMemberRole(roomId as string, uid, role),
+    onSuccess: invalidate,
+  })
+}
+
+export function useUpdateRoomIcon(roomId: string | undefined, myUid: string | undefined) {
+  const invalidate = useRoomInfoInvalidate(roomId, myUid)
+  return useMutation({
+    mutationFn: (icon: string) => updateRoomIcon(roomId as string, icon),
+    onSuccess: invalidate,
+  })
+}
+
+export function useResetRoomPassword(roomId: string | undefined, myUid: string | undefined) {
+  const invalidate = useRoomInfoInvalidate(roomId, myUid)
+  return useMutation({
+    mutationFn: (newPassword: string | null) => resetRoomPassword(roomId as string, newPassword),
+    onSuccess: invalidate,
+  })
+}
+
+export function useExtendRoom(roomId: string | undefined, myUid: string | undefined) {
+  const invalidate = useRoomInfoInvalidate(roomId, myUid)
+  return useMutation({
+    mutationFn: () => extendRoom(roomId as string),
+    onSuccess: invalidate,
+  })
+}
+
+export function useDeleteRoom(myUid: string | undefined) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (roomId: string) => deleteRoom(roomId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['groups'] })
+      void queryClient.invalidateQueries({ queryKey: ['points', myUid] })
+    },
   })
 }

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, Lock, Send, Users } from 'lucide-react'
+import { ArrowLeft, Info, Lock, Send, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/feedback'
@@ -15,6 +15,7 @@ import {
 } from '@/hooks/useGroups'
 import { useAuthStore } from '@/stores/auth'
 import { cn } from '@/lib/utils'
+import { GroupInfoPanel } from '@/features/groups/GroupInfoPanel'
 import { supabase } from '@/lib/supabase'
 
 export function GroupRoomPage() {
@@ -30,6 +31,7 @@ export function GroupRoomPage() {
   const markRead = useMarkRoomRead()
 
   const [draft, setDraft] = useState('')
+  const [infoOpen, setInfoOpen] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   const messages = messagesQuery.data?.pages.flat() ?? []
@@ -110,7 +112,27 @@ export function GroupRoomPage() {
             {room?.country ?? '—'}
           </div>
         </div>
+        {groupId ? (
+          <button
+            type="button"
+            onClick={() => setInfoOpen(true)}
+            aria-label={t('groups.info')}
+            title={t('groups.info')}
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-muted transition hover:bg-panel hover:text-text"
+          >
+            <Info className="h-4.5 w-4.5" />
+          </button>
+        ) : null}
       </header>
+
+      {groupId ? (
+        <GroupInfoPanel
+          open={infoOpen}
+          onOpenChange={setInfoOpen}
+          roomId={groupId}
+          myUid={myUid}
+        />
+      ) : null}
 
       <div className="flex-1 overflow-y-auto px-3 py-4 sm:px-6">
         {membership.isLoading || messagesQuery.isLoading ? (

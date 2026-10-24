@@ -72,10 +72,10 @@ Prioritas: **P0** = dipakai harian, pengguna langsung merasakan · **P1** = pent
 | # | Fitur | Kontrak mobile | P | Estimasi kerja |
 |---|---|---|---|---|
 | A1 ✅ | Buat grup dari web | `rpc('create_private_room', {p_name, p_icon, p_country, p_password?, p_category?})` — biaya `create_paid × multiplier` (300 / 450 dengan password), dipotong **server**. Validasi nama 3–30 karakter, limit 2 grup aktif, cegah duplikat (return `duplicate: true` + `join_token`) | P0 | Sedang: form + dialog konfirmasi biaya + tampilkan `join_token` |
-| A2 | Kelola anggota | `rpc('kick_room_member')`, `rpc('invite_to_room')`, `rpc('list_room_members_v2')`, `fn_room_role()` untuk cek role owner/admin | P0 | Sedang: sheet anggota + aksi per baris |
-| A3 | Approve join request | `rpc('list_room_join_requests')` + update status `approved`/`rejected` (mobile: `PrivateRoomService.approveJoin`) | P0 | Kecil |
-| A4 | Info grup + edit | `rooms` (name, description, icon, password) + `rpc('update_room_icon')`, `rpc('reset_room_password')`, hapus password | P1 | Sedang |
-| A5 | Extend & hapus grup | `rpc('extend_private_room')` (50 × mult), `rpc('delete_private_room')` | P1 | Kecil |
+| A2 ✅ | Kelola anggota | `rpc('kick_room_member')`, `rpc('invite_to_room')`, `rpc('list_room_members_v2')`, `fn_room_role()` untuk cek role owner/admin | P0 | Sedang: sheet anggota + aksi per baris |
+| A3 ✅ | Approve join request | `rpc('list_room_join_requests')` + update status `approved`/`rejected` (mobile: `PrivateRoomService.approveJoin`) | P0 | Kecil |
+| A4 ✅ | Info grup + edit | `rooms` (name, description, icon, password) + `rpc('update_room_icon')`, `rpc('reset_room_password')`, hapus password | P1 | Sedang |
+| A5 ✅ | Extend & hapus grup | `rpc('extend_private_room')` (50 × mult), `rpc('delete_private_room')` | P1 | Kecil |
 | A6 | Media di grup | Tabel `messages` kolom sama (`image_path`, `voice_path`, `duration_ms`, `video_poster`) — kontrak sudah sama dengan private, tinggal wire ke `useMediaSend` | P1 | Sedang |
 | A7 | Poll di grup | `messages.poll` (jsonb) + `rpc('vote_room_poll')`, `rpc('get_room_poll_results')` | P1 | Kecil (PollCard sudah ada) |
 | A8 | Live location di room | `messages` type `location` + update `text` berkala (mobile: `updateLocationMessage`) | P2 | Sedang |

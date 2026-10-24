@@ -9,22 +9,7 @@ import { Input, Label } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/feedback'
 import { useCreateRoom, useMyPoints, useRoomPricing } from '@/hooks/useGroups'
 import { cn } from '@/lib/utils'
-
-/** Sama dengan `kGroupIcons` di Android (`create_group_sheet.dart`). */
-const GROUP_ICONS = [
-  '💬',
-  '👥',
-  '🎉',
-  '🎮',
-  '🎵',
-  '💘',
-  '🔥',
-  '⭐',
-  '🌙',
-  '👑',
-  '☕',
-  '🔒',
-]
+import { GROUP_ICONS } from '@/features/groups/group-icons'
 
 const NAME_MIN = 3
 const NAME_MAX = 30

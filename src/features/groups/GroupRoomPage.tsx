@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 import {
@@ -21,6 +21,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog'
 import {
   useMarkRoomRead,
   useRoom,
+  useRoomMembers,
   useRoomMembership,
   useRoomMessages,
   useSendRoomMessage,
@@ -33,6 +34,7 @@ import { MessageBubble } from '@/features/chat/MessageBubble'
 import { StickerPicker } from '@/features/chat/StickerPicker'
 import { useGroupMediaSend } from '@/hooks/useGroupMediaSend'
 import { useStarredIds, useToggleStar } from '@/hooks/useStars'
+import { useMentionAutocomplete } from '@/hooks/useMentionAutocomplete'
 import type { Message } from '@/lib/types'
 import { supabase } from '@/lib/supabase'
 
@@ -47,6 +49,14 @@ export function GroupRoomPage() {
   const messagesQuery = useRoomMessages(groupId)
   const sendMessage = useSendRoomMessage(groupId)
   const markRead = useMarkRoomRead()
+  const grouped = useRoomMembers(groupId, true)
+  const mentionCandidates = useMemo(
+    () =>
+      (grouped.data ?? [])
+        .filter((member) => member.userId !== myUid)
+        .map((member) => ({ uid: member.userId, name: member.nickname })),
+    [grouped.data, myUid],
+  )
   const starredIds = useStarredIds(myUid, 'room', groupId)
   const toggleStarMutation = useToggleStar(myUid, 'room', groupId)
   const media = useGroupMediaSend({
@@ -60,6 +70,13 @@ export function GroupRoomPage() {
   })
 
   const [draft, setDraft] = useState('')
+  const draftRef = useRef<HTMLTextAreaElement>(null)
+  const mention = useMentionAutocomplete({
+    text: draft,
+    setText: setDraft,
+    candidates: mentionCandidates,
+    textareaRef: draftRef,
+  })
   const [infoOpen, setInfoOpen] = useState(false)
   const [livePickerOpen, setLivePickerOpen] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -110,9 +127,13 @@ export function GroupRoomPage() {
         senderName: profile.nickname ?? 'Kamu',
         senderGender: profile.gender,
         text: draft,
+        mentions: mention.mentionsInText(),
       },
       {
-        onSuccess: () => setDraft(''),
+        onSuccess: () => {
+          setDraft('')
+          mention.reset()
+        },
         onError: (error) =>
           toast.error(error instanceof Error ? error.message : t('groups.joinFailed')),
       },
@@ -328,9 +349,36 @@ export function GroupRoomPage() {
               <Mic className="h-[18px] w-[18px]" />
             )}
           </button>
+          {mention.token && mention.options.length > 0 ? (
+            <ul
+              className="absolute bottom-full left-0 z-30 mb-1 max-h-56 w-64 overflow-y-auto rounded-xl border border-border bg-surface p-1 shadow-soft"
+              role="listbox"
+              aria-label={t('mention.title')}
+            >
+              {mention.options.map((option) => (
+                <li key={option.uid}>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={false}
+                    onClick={() => mention.choose(option)}
+                    className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[12.5px] text-text transition hover:bg-panel"
+                  >
+                    <span className="min-w-0 flex-1 truncate">{option.name}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
           <textarea
+            ref={draftRef}
             value={draft}
-            onChange={(event) => setDraft(event.target.value)}
+            onChange={(event) => {
+              setDraft(event.target.value)
+              mention.handleCaret(event)
+            }}
+            onKeyUp={mention.handleCaret}
+            onClick={mention.handleCaret}
             onKeyDown={(event) => {
               if (event.key === 'Enter' && !event.shiftKey) {
                 event.preventDefault()

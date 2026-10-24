@@ -24,7 +24,7 @@ import {
   Square,
   X,
 } from 'lucide-react'
-import { Fragment, useRef, useState } from 'react'
+import { Fragment, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -45,6 +45,7 @@ import { StickerPicker } from '@/features/chat/StickerPicker'
 import { ForwardDialog } from '@/features/chat/ForwardDialog'
 import { AlbumGrid } from '@/features/chat/AlbumGrid'
 import { useStarredIds, useToggleStar } from '@/hooks/useStars'
+import { useMentionAutocomplete } from '@/hooks/useMentionAutocomplete'
 import { ProfileDrawer } from '@/features/chat/ProfileDrawer'
 import {
   useAvatars,
@@ -124,7 +125,24 @@ export function ChatPage() {
     onTyping: sendTyping,
     onStopTyping: stopTyping,
     onSent: () => scroll.scrollToBottom('smooth'),
+    collectMentions: () => mention.mentionsInText(),
   })
+  const mentionCandidates = useMemo<Array<{ uid: string; name: string }>>(() => {
+    if (!chat || !myUid) return []
+    return chat.participants
+      .filter((uid) => uid !== myUid)
+      .map((uid) => ({
+        uid,
+        name: chat.participant_names?.[uid]?.trim() || 'Pengguna',
+      }))
+  }, [chat, myUid])
+  const mention = useMentionAutocomplete({
+    text: composer.text,
+    setText: composer.setText,
+    candidates: mentionCandidates,
+    textareaRef: composer.textareaRef,
+  })
+
   const { text, replyTo, setReplyTo, textareaRef, handleTextChange, sendTextMessage, handleKeyDown } =
     composer
 
@@ -901,14 +919,41 @@ export function ChatPage() {
             onPick={(path) => void sendSticker(path)}
           />
 
-          <div className="flex min-w-0 flex-1 items-end">
+          <div className="relative flex min-w-0 flex-1 items-end">
+            {mention.token && mention.options.length > 0 ? (
+              <ul
+                className="absolute bottom-full left-0 z-30 mb-1 max-h-56 w-64 overflow-y-auto rounded-xl border border-border bg-surface p-1 shadow-soft"
+                role="listbox"
+                aria-label={t('mention.title')}
+              >
+                {mention.options.map((option) => (
+                  <li key={option.uid}>
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={false}
+                      onClick={() => mention.choose(option)}
+                      className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[12.5px] text-text transition hover:bg-panel"
+                    >
+                      <Avatar name={option.name} size={22} />
+                      <span className="min-w-0 flex-1 truncate">{option.name}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
             <textarea
               ref={textareaRef}
               value={text}
               rows={1}
               maxLength={2000}
               disabled={otherBlocked}
-              onChange={(event) => handleTextChange(event.target.value)}
+              onChange={(event) => {
+                handleTextChange(event.target.value)
+                mention.handleCaret(event)
+              }}
+              onKeyUp={mention.handleCaret}
+              onClick={mention.handleCaret}
               onKeyDown={handleKeyDown}
               onBlur={stopTyping}
               placeholder={t('chat.typeMessage')}

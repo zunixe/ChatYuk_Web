@@ -254,6 +254,7 @@ export async function sendRoomMessage(input: {
   repliedToId?: number
   repliedToText?: string
   repliedToSenderName?: string
+  mentions?: Array<{ uid: string; name: string }>
 }): Promise<void> {
   const text = input.text.trim()
   if (!text) throw new Error('Pesan tidak boleh kosong.')
@@ -271,6 +272,7 @@ export async function sendRoomMessage(input: {
     ...(input.repliedToSenderName
       ? { replied_to_sender_name: input.repliedToSenderName }
       : {}),
+    ...(input.mentions?.length ? { mentions: input.mentions } : {}),
   })
   if (error) throw error
 }
@@ -468,7 +470,10 @@ export async function sendRoomMedia(input: {
   videoPoster?: string
   durationMs?: number
   isForwarded?: boolean
+  mentions?: Array<{ uid: string; name: string }>
 }): Promise<number> {
+  // `mentions` diisi lewat opsi terpisah hanya untuk pesan teks.
+
   const { data, error } = await supabase.from('messages').insert({
     room_id: input.roomId,
     sender_id: input.senderId,
@@ -483,6 +488,7 @@ export async function sendRoomMedia(input: {
     ...(input.videoPoster ? { video_poster: input.videoPoster } : {}),
     ...(input.durationMs != null ? { duration_ms: input.durationMs } : {}),
     ...(input.isForwarded ? { is_forwarded: true } : {}),
+    ...(input.mentions?.length ? { mentions: input.mentions } : {}),
   }).select('id').single()
   if (error) throw error
   return asNumber(asRecord(data).id)

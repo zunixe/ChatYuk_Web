@@ -34,6 +34,7 @@ export function useChatComposer({
   onTyping,
   onStopTyping,
   onSent,
+  collectMentions,
 }: {
   chatId: string | undefined
   myUid: string | undefined
@@ -43,6 +44,8 @@ export function useChatComposer({
   onTyping: () => void
   onStopTyping: () => void
   onSent: () => void
+  /** Mention yang dipilih pengguna (dikirim sebagai jsonb `mentions`). */
+  collectMentions?: () => Array<{ uid: string; name: string }>
 }) {
   const queryClient = useQueryClient()
   const [text, setText] = useState('')
@@ -99,6 +102,7 @@ export function useChatComposer({
       temp_id: temp,
     }
 
+    const mentions = collectMentions?.() ?? []
     addOptimisticMessage(queryClient, chatId, optimistic)
     touchChatCache(queryClient, myUid, chatId, clean, now)
     setText('')
@@ -116,6 +120,7 @@ export function useChatComposer({
         repliedToId: reply?.id ?? null,
         repliedToText: reply ? messagePreview(reply) : null,
         repliedToSenderName: reply ? senderNameOf(reply) : null,
+        mentions: mentions.length ? mentions : undefined,
       })
       replaceOptimisticMessage(queryClient, chatId, temp, server)
       void queryClient.invalidateQueries({ queryKey: ['chats', myUid] })

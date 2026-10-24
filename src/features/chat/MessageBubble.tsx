@@ -16,7 +16,7 @@ import {
   RotateCcw,
   SmilePlus,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { mediaUrl, messageImageSrc } from '@/lib/media'
 import { SafeImage } from '@/components/ui/safe-image'
@@ -24,6 +24,7 @@ import { ViewOnceCard } from '@/features/chat/ViewOnceCard'
 import { PollCard } from '@/features/chat/PollCard'
 import { useTranslation } from 'react-i18next'
 import { useNow } from '@/hooks/useNow'
+import { mentionsFrom, splitMentions } from '@/lib/mention'
 import { isViewOnceFamily } from '@/lib/view-once'
 import { safeMapUrl, safePhoneHref, safePhoneLabel } from '@/lib/url-safety'
 import { formatMessageTime } from '@/lib/time'
@@ -128,6 +129,13 @@ export function MessageBubble({
   const contact = message.type === 'contact' ? parseObject(message.contact) ?? parseObject(text) : null
   const failed = message.client_status === 'failed'
   const sending = message.client_status === 'sending'
+
+  // Highlight `@nama` / `@all` sesuai metadata `mentions` (kontrak Android).
+  const rawText = message.text ?? ''
+  const mentionSegments = useMemo(
+    () => splitMentions(rawText, mentionsFrom(message.mentions), room),
+    [rawText, message.mentions, room],
+  )
 
   const summary = useMemo(() => {
     const map = new Map<string, { count: number; mine: boolean }>()
@@ -412,7 +420,15 @@ export function MessageBubble({
 
           {!deleted && showText ? (
             <p className="whitespace-pre-wrap break-words text-[13.5px] leading-[1.45] text-text">
-              {text}
+              {mentionSegments.map((segment, index) =>
+                segment.kind === 'mention' ? (
+                  <span key={`${segment.text}-${index}`} className="font-semibold text-primary">
+                    {segment.text}
+                  </span>
+                ) : (
+                  <Fragment key={`t-${index}`}>{segment.text}</Fragment>
+                ),
+              )}
             </p>
           ) : null}
 

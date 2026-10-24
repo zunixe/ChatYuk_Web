@@ -86,6 +86,7 @@ export async function sendPrivateMessage(input: SendMessageInput): Promise<Messa
   if (input.durationMs != null) payload.duration_ms = input.durationMs
   if (input.albumId) payload.album_id = input.albumId
   if (input.isForwarded) payload.is_forwarded = true
+  if (input.mentions?.length) payload.mentions = input.mentions
   if (input.repliedToId != null) {
     payload.replied_to_id = input.repliedToId
     payload.replied_to_text = input.repliedToText ?? ''

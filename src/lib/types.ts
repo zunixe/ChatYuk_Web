@@ -146,6 +146,7 @@ export interface SendMessageInput {
   durationMs?: number
   albumId?: string | null
   isForwarded?: boolean
+  mentions?: Array<{ uid: string; name: string }>
   repliedToId?: string | number | null
   repliedToText?: string | null
   repliedToSenderName?: string | null

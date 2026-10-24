@@ -1,5 +1,6 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
+  createRoom,
   fetchMyGroups,
   fetchMyPoints,
   fetchRoom,
@@ -72,6 +73,18 @@ export function useRoomMessages(roomId: string | undefined) {
     queryFn: ({ pageParam }) => fetchRoomMessages(roomId as string, ROOM_PAGE_SIZE, pageParam),
     getNextPageParam: (lastPage) =>
       lastPage.length < ROOM_PAGE_SIZE ? undefined : lastPage[0]?.id,
+  })
+}
+
+export function useCreateRoom(myUid: string | undefined) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: Parameters<typeof createRoom>[0]) => createRoom(input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['groups', 'mine', myUid] })
+      void queryClient.invalidateQueries({ queryKey: ['groups', 'explore'] })
+      void queryClient.invalidateQueries({ queryKey: ['points', myUid] })
+    },
   })
 }
 

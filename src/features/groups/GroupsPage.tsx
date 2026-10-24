@@ -10,6 +10,7 @@ import { useAuthStore } from '@/stores/auth'
 import { cn } from '@/lib/utils'
 import type { Room } from '@/lib/api/groups'
 import { JoinDialog } from '@/features/groups/JoinDialog'
+import { CreateGroupDialog } from '@/features/groups/CreateGroupDialog'
 
 export function GroupsPage() {
   const { t } = useTranslation()
@@ -20,6 +21,7 @@ export function GroupsPage() {
   const [tab, setTab] = useState<'mine' | 'explore'>('mine')
   const [search, setSearch] = useState('')
   const [joinTarget, setJoinTarget] = useState<Room | null>(null)
+  const [createOpen, setCreateOpen] = useState(false)
 
   const mineQuery = useMyGroups(myUid)
   const exploreQuery = useRoomExplore(tab === 'explore' ? myCountry : undefined, myUid)
@@ -41,6 +43,10 @@ export function GroupsPage() {
             <Users className="h-4.5 w-4.5" />
           </span>
           <h1 className="flex-1 text-[15px] font-semibold text-text">{t('groups.title')}</h1>
+          <Button size="sm" variant="secondary" onClick={() => setCreateOpen(true)}>
+            <Plus className="h-3.5 w-3.5" />
+            {t('groups.create')}
+          </Button>
           <Link to="/chats" className="text-[12px] text-muted hover:text-text">
             {t('groups.back')}
           </Link>
@@ -108,6 +114,13 @@ export function GroupsPage() {
           </ul>
         )}
       </div>
+
+      <CreateGroupDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        myUid={myUid}
+        defaultCountry={myCountry}
+      />
 
       <JoinDialog
         room={joinTarget}

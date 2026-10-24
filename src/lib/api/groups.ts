@@ -263,6 +263,50 @@ export async function sendRoomMessage(input: {
   if (error) throw error
 }
 
+export interface CreateRoomResult {
+  id: string
+  points: number
+  joinToken: string
+  duplicate: boolean
+}
+
+/**
+ * Buat grup (room privat). Biaya dipotong **server**:
+ * `create_paid × multiplier` (300) atau `create_pw_paid × multiplier` (450
+ * bila memakai password). Bila nama + negara sama dengan grup aktif milik
+ * saya, server mengembalikan `duplicate: true` beserta id grup lama.
+ */
+export async function createRoom(input: {
+  name: string
+  icon: string
+  country: string
+  password?: string
+  category?: string
+}): Promise<CreateRoomResult> {
+  const name = input.name.trim()
+  if (name.length < 3 || name.length > 30) {
+    throw new Error('Nama grup harus 3–30 karakter.')
+  }
+  if (!input.country.trim()) throw new Error('Negara wajib diisi.')
+
+  const { data, error } = await supabase.rpc('create_private_room', {
+    p_name: name,
+    p_icon: input.icon || '💬',
+    p_country: input.country.trim(),
+    p_password: input.password?.trim() ? input.password.trim() : null,
+    p_category: input.category ?? 'private',
+  })
+  if (error) throw error
+
+  const row = asRecord(data)
+  return {
+    id: asString(row.id),
+    points: asNumber(row.points),
+    joinToken: asString(row.join_token),
+    duplicate: Boolean(row.duplicate),
+  }
+}
+
 /** Saldo poin saya (cermin ledger; server sumber kebenaran). */
 export async function fetchMyPoints(uid: string): Promise<number> {
   const { data, error } = await supabase

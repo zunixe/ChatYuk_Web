@@ -46,10 +46,25 @@ di `public.messages` (kolom `room_id`) — **bukan** `private_messages`.
 
 Akses: tombol ikon `Users` di header `/chats`.
 
-## Cakupan fase 1
+## Cakupan
 
-Sudah: list, search, explore, join (termasuk password), room chat teks,
-realtime INSERT, mark read, kirim pesan.
+Sudah:
+- list, search, explore, join (termasuk password), room chat teks,
+  realtime INSERT, mark read, kirim pesan
+- **buat grup (A1)**: dialog nama (3–30), 12 ikon emoji (sama dengan
+  `kGroupIcons` Android), opsi password (6–20), tampil biaya dari
+  `room_pricing()`, tangani `duplicate: true`, dan tampilkan `join_token`
 
-Belum: buat grup dari web, media di grup, voice room, poll, approval UI,
-kelola anggota, hapus grup.
+Belum: media di grup, voice room, poll, approval UI (A3), kelola anggota
+(A2), info/edit grup (A4), extend/hapus (A5).
+
+### Catatan implementasi buat grup
+
+`createRoom()` di `src/lib/api/groups.ts` memanggil `create_private_room`
+dan memetakan hasil `{id, points, join_token, duplicate}`. Biaya **dipotong
+server** (`spend_room` di `coin_ledger`), bukan oleh klien — klien hanya
+menampilkan estimasi `create_paid × multiplier` (300) atau
+`create_pw_paid × multiplier` (450) dan menonaktifkan tombol bila saldo
+kurang. Terverifikasi: grup terbentuk (`is_private`, `owner_id`, role
+`owner`, `approval_required=true`), poin terpotong 300, lalu data uji
+dibersihkan (ledger netto 0).

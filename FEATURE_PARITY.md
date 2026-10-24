@@ -71,7 +71,7 @@ Prioritas: **P0** = dipakai harian, pengguna langsung merasakan · **P1** = pent
 
 | # | Fitur | Kontrak mobile | P | Estimasi kerja |
 |---|---|---|---|---|
-| A1 | Buat grup dari web | `rpc('create_private_room', {p_name, p_icon, p_country, p_password?, p_category?})` — biaya `create_paid × multiplier` (300 / 450 dengan password), dipotong **server**. Validasi nama 3–30 karakter, limit 2 grup aktif, cegah duplikat (return `duplicate: true` + `join_token`) | P0 | Sedang: form + dialog konfirmasi biaya + tampilkan `join_token` |
+| A1 ✅ | Buat grup dari web | `rpc('create_private_room', {p_name, p_icon, p_country, p_password?, p_category?})` — biaya `create_paid × multiplier` (300 / 450 dengan password), dipotong **server**. Validasi nama 3–30 karakter, limit 2 grup aktif, cegah duplikat (return `duplicate: true` + `join_token`) | P0 | Sedang: form + dialog konfirmasi biaya + tampilkan `join_token` |
 | A2 | Kelola anggota | `rpc('kick_room_member')`, `rpc('invite_to_room')`, `rpc('list_room_members_v2')`, `fn_room_role()` untuk cek role owner/admin | P0 | Sedang: sheet anggota + aksi per baris |
 | A3 | Approve join request | `rpc('list_room_join_requests')` + update status `approved`/`rejected` (mobile: `PrivateRoomService.approveJoin`) | P0 | Kecil |
 | A4 | Info grup + edit | `rooms` (name, description, icon, password) + `rpc('update_room_icon')`, `rpc('reset_room_password')`, hapus password | P1 | Sedang |

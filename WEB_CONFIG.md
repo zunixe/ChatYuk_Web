@@ -448,6 +448,22 @@ ssh -p 2222 ... 'systemctl list-timers ngrok-watch.timer --no-pager'
 
 Baris `PUBLIC=200 ok` = tunnel sehat. Bila muncul `-> restart ngrok`, watchdog sudah mencoba memulihkan otomatis.
 
+### Insiden: `rm -rf` tidak sengaja pada `/data/workspace/chatyuk-web` (2026-10-24)
+
+Saat membersihkan objek uji, satu perintah `rm -rf` ikut menghapus direktori
+web di server (`deploy/` + `dist/`). Situs 404 sampai dipulihkan.
+
+Pemulihan (tanpa rebuild penuh di server):
+1. `scp -r deploy …:/data/workspace/chatyuk-web/` — Caddyfile kembali (diverifikasi
+   `diff` identik dengan repo).
+2. `mkdir -p dist && tar xzf /tmp/dist.tgz -C dist` — artefak build terakhir.
+3. Verifikasi `root=200`, `/groups=200`, `/runtime-config.js=200`.
+4. Caddy tidak perlu restart (proses lama masih memegang config yang sama).
+
+**Aturan baru:** perintah pembersihan di server WAJIB menyebut path target
+secara eksplisit dan tidak boleh memakai `rm -rf` relatif/berantai dengan
+`..`. Jangan pernah menghapus direktori induk `/data/workspace/chatyuk-web`.
+
 ### Insiden: ERR_NGROK_3200 (2026-10-24)
 
 Gejala: URL publik mengembalikan **HTTP 404 ERR_NGROK_3200 "endpoint offline"**, termasuk
@@ -559,6 +575,7 @@ Backup terakhir: `/data/workspace/backups/pre-google-dev-1792540007.dump` (1.9 M
 | 2026-10-23 | Grup di web: list, explore, join, chat teks, realtime. Join server GRATIS (jangan tampilkan `join_paid`) |
 | 2026-10-23 | FEATURE_PARITY.md: peta gap fitur mobile vs web + urutan eksekusi disetujui |
 | 2026-10-23 | FEATURE_PARITY.md v2: + bagian 7 Paritas UI (token, tipografi, per layar). Diterapkan cepat: --online #4CAF50, --danger #F44336, reaksi +😁 |
+| 2026-10-24 | Insiden: `rm -rf` di server menghapus deploy/ + dist/; pulih dari repo + /tmp/dist.tgz |
 | 2026-10-24 | A9+A10: galeri media grup + kode gabung (read-only, rotasi khusus admin) |
 | 2026-10-24 | A8: lokasi live grup (durasi, refresh 30 dtk, badge LIVE + countdown) |
 | 2026-10-24 | A7: poll grup (render + vote via RPC room) |

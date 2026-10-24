@@ -69,7 +69,7 @@ function mediaUrl(path: string | null | undefined): string | null {
   return safeMediaUrl(storagePublicUrl(value))
 }
 
-const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏']
+const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏', '😁']
 
 interface MessageBubbleProps {
   message: Message

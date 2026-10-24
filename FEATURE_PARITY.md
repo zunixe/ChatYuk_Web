@@ -4,7 +4,7 @@ Dokumen hasil perbandingan langsung kode sumber (bukan asumsi):
 - Mobile: `~/Documents/chatyuk` — 61 layar (`lib/screens/`), 40+ service (`lib/services/`)
 - Web: `~/Documents/chatyuk-web` — modul `src/features/{auth,chat,chats,groups,settings}`
 
-Update terakhir: 2026-10-23.
+Update terakhir: 2026-10-23 (v2: + bagian 7 Paritas UI).
 
 ---
 
@@ -151,3 +151,72 @@ Ditemukan saat riset & uji — catat agar tidak diulang:
 3. **Fase S — modul sosial**: C1/C2 stories → C5/C6 leaderboard & point history (cepat) → C3 timeline → sisanya sesuai kebutuhan.
 
 Setiap fase: uji E2E (web kirim ↔ Android terima dan sebaliknya), `npm test` + `tsc` + `oxlint` hijau, deploy, commit + push, lalu update dokumen ini (tandai ✅ di tabel).
+
+---
+
+## 7. Paritas UI (bukan hanya fitur)
+
+Fitur bisa sama tetapi terasa berbeda bila tampilannya beda. Bagian ini membandingkan **sumber kebenaran visual mobile** (`lib/config/theme.dart`) dengan web (`src/index.css`), lalu mendata gap UI per layar.
+
+### 7.1 Design token — sudah sama ✅
+
+| Token | Mobile (`AppTheme`) | Web (`--*`) | Status |
+|---|---|---|---|
+| Primary | `#2196F3` | `--primary: #2196f3` (dark `#4aa8ff`) | ✅ sama |
+| Primary dark | `#1976D2` | `--primary-strong: #1976d2` | ✅ sama |
+| Accent | `#00BCD4` | `--accent: #00bcd4` (dark `#2dd4e6`) | ✅ sama |
+| Online | `#4CAF50` | `--online: #1f9d6b` | 🟡 sedikit beda (lebih gelap di web) |
+| Danger | `#F44336` | `--danger: #e5484d` | 🟡 sedikit beda |
+| Male / female avatar | `#2196F3` / `#E91E63` | sama di `avatar.tsx` `GENDER_COLORS` | ✅ sama |
+| Font display/CTA | Poppins | `--font-display: "Poppins"...` | ✅ sama |
+| Font body | Roboto (w300 ramping ala WA) | `--font-sans: "Roboto"...` | 🟡 web belum terapkan w300 ramping |
+| Bubble out | `primary @25%` di atas `bgCard` | `--bubble-out: #d8ecff` / dark `#123f5e` | 🟡 mirip tapi bukan formula yang sama |
+| Mode gelap | default **gelap** (`isDark ?? true`) | default **terang** (disengaja, diputuskan sebelumnya) | ✅ beda disengaja |
+
+### 7.2 Tipografi — gap terbesar 🟡
+
+Mobile punya skala token ketat (`AppText`: micro 10, caption 11, label 12, bodySmall 12, body 14, bodyStrong 14, button 16, title 17, headline 20, display 24) + **slider ukuran font chat** (14–18pt, basis 16, default 14.5) yang mengubah SEMUA teks di dalam percakapan (isi bubble, nama pengirim, jam, kutipan, kode, kolom ketik).
+
+Web belum punya:
+- Slider ukuran font chat di Pengaturan (fitur mobile, tidak ada di web)
+- Bobot ramping w300 pada body/bubble — web masih memakai bobot default, jadi teks terlihat lebih tebal dari Android
+- Token micro (10pt) untuk timestamp/badge — web memakai 10.5–11px di beberapa tempat (dekat, tapi tidak konsisten)
+
+### 7.3 Gap UI per layar (harus disamakan)
+
+Prioritas: **U0** = terlihat sepanjang sesi (nav, chat, list) · **U1** = sering dilihat · **U2** = kadang.
+
+| # | Area | Mobile | Web | P |
+|---|---|---|---|---|
+| U1 | **Bottom nav** | 4 tab: Online, Chats, **Timeline**, **Profil** + notch tengah (FAB khusus) + pil M3 animasi | 2 tab saja (Online, Chat) + tombol Grup & Settings terpisah — tidak ada Timeline/Profil sebagai tab | U0 |
+| U2 | **Bubble keluar** | `alphaBlend(primary 25%, bgCard)` — dinamis ikut tema | `#d8ecff` statis (light) / `#123f5e` (dark) — beda rumus, perbedaan halus terlihat | U0 |
+| U3 | **Swipe-to-reply** | Geser bubble ke kanan → reply (widget `SwipeToReply`) | Tidak ada (hanya tombol/menu) | U0 |
+| U4 | **Tahan bubble → toolbar reaksi** | 600ms (`AppTiming.longPressBubble`) memunculkan bar reaksi cepat 7 emoji: `👍❤️😂😮😢🙏😁` + sheet "lebih banyak" (14 emoji lagi) | Tidak ada long-press; reaksi hanya lewat tombol kecil; daftar web 6 emoji (`👍❤️😂😮😢🙏`) — kurang `😁`, dan tidak ada sheet "lebih banyak" | U0 |
+| U5 | **Slider ukuran font chat** | Pengaturan → slider 14–18pt, mempengaruhi semua teks percakapan, tersimpan lokal | Tidak ada | U1 |
+| U6 | **Header profil mobile** | Gradient `headerGradient` (primary→accent) di atas avatar | Web pakai gradient lembut `primary/15 → transparent` di ProfileDrawer — mirip nuansa, beda intensitas | U1 |
+| U7 | **Warna status tunggal** | `statusColor()` satu sumber: online `#4CAF50`, idle `#FFB300`, offline `#BDBDBD` | Web menyebar inline; belum satu sumber token | U1 |
+| U8 | **Quick side menu** | Menu tepi kanan halaman Online: Timeline (ungu `#8B5CF6`), Room (oranye `#FF7043`), Buat Grup (emerald `#10B981`) — warna khas mencolok | Tidak ada padanan (web hanya tombol Grup di header chats) | U1 |
+| U9 | **Transisi halaman** | Slide dari kanan 250ms/220ms global (rasa Android native) | Default browser/React tanpa transisi halaman khusus | U2 |
+| U10 | **Tooltip/tahan ikon** | Muncul setelah 450ms (disamakan dengan long-press) | Native browser title (±1s) | U2 |
+| U11 | **Snackbar** | Floating, radius 12, inset 16 dari tepi, warna `#424242` (light) | Web pakai Sonner (posisi top-center) — mekanisme beda, boleh dipertahankan, tapi posisi/radius bisa disamakan | U2 |
+| U12 | **Chip/badge** | radius 20 (pill), bg `bgInput`, selected `primary @15%` | Web sudah pakai pill — ✅ hampir sama | — |
+| U13 | **Kartu/dialog** | radius 12, border 1.5px `divider`, elevation 0 | Web radius 12–16, border 1px — ✅ cukup dekat | — |
+| U14 | **Emoji composer** | Mobile: picker penuh (sheet) | Web: 12 emoji statis di popover — fungsional, lebih terbatas | U2 |
+
+### 7.4 Yang TIDAK perlu disamakan (beda platform wajar)
+
+| Item | Alasan |
+|---|---|
+| Notch/FAB fisik di bottom nav | Web desktop tidak punya gesture area; pil M3 cukup diwakili hover/active state |
+| Ripple Material 90ms | Web memakai hover/active transition — sudah lazim |
+| Splash/exit animasi OS | Kontrol OS, bukan app |
+| Safe-area notch top | Web sudah pakai `env(safe-area-inset-top)` di ChatPage header — ✅ |
+
+### 7.5 Rencana eksekusi UI (disisipkan ke fase yang ada)
+
+| Fase | Item UI |
+|---|---|
+| **Fase G (grup)** | U1 tab Timeline/Profil ditunda sampai fitur timeline ada; untuk grup: tambah tab "Grup" di nav bawah web (menggantikan tombol header) |
+| **Fase C (chat)** | U3 swipe-to-reply · U4 long-press toolbar + 7 emoji + sheet · U2 formula bubble keluar · U5 slider font · U7 token statusColor |
+| **Fase S (sosial)** | U1 tab Timeline & Profil · U8 quick side menu · U6 header gradient · U9 transisi halaman · U11 snackbar |
+| **Kapan pun (cepat)** | Samakan `--online` → `#4CAF50`, `--danger` → `#F44336`, `kQuickReactions` +`😁`, QUICK_REACTIONS web +`😁` |

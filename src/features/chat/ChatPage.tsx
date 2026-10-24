@@ -42,6 +42,7 @@ import { MessageBubble } from '@/features/chat/MessageBubble'
 import { StickerPicker } from '@/features/chat/StickerPicker'
 import { ForwardDialog } from '@/features/chat/ForwardDialog'
 import { AlbumGrid } from '@/features/chat/AlbumGrid'
+import { useStarredIds, useToggleStar } from '@/hooks/useStars'
 import { ProfileDrawer } from '@/features/chat/ProfileDrawer'
 import {
   useAvatars,
@@ -209,6 +210,8 @@ export function ChatPage() {
   const [viewerSrc, setViewerSrc] = useState<string | null>(null)
   const [emojiOpen, setEmojiOpen] = useState(false)
   const [forwardTarget, setForwardTarget] = useState<Message | null>(null)
+  const starredIds = useStarredIds(myUid, 'private', chatId)
+  const toggleStarMutation = useToggleStar(myUid, 'private', chatId)
   const [attachOpen, setAttachOpen] = useState(false)
   const retryingRef = useRef<Set<string>>(new Set())
 
@@ -608,6 +611,14 @@ export function ChatPage() {
                       onReply={handleReply}
                       onReact={(target, emoji) => void handleReact(target, emoji)}
                       onForward={(target) => setForwardTarget(target)}
+                      starred={(starredIds.data ?? []).includes(String(message.id))}
+                      onToggleStar={(target) => {
+                        toggleStarMutation.mutate(target.id, {
+                          onSuccess: (nowStarred) =>
+                            toast.success(nowStarred ? t('star.added') : t('star.removed')),
+                          onError: (error) => toast.error(errorMessage(error)),
+                        })
+                      }}
                       onRetry={(target) => void handleRetry(target)}
                       onEdit={(target) => void handleEdit(target)}
                       onDelete={(target) => void handleDelete(target)}

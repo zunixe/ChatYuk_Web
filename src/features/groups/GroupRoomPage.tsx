@@ -14,6 +14,7 @@ import {
   Video,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { errorMessage } from '@/lib/errors'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/feedback'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
@@ -31,6 +32,7 @@ import { GroupInfoPanel } from '@/features/groups/GroupInfoPanel'
 import { MessageBubble } from '@/features/chat/MessageBubble'
 import { StickerPicker } from '@/features/chat/StickerPicker'
 import { useGroupMediaSend } from '@/hooks/useGroupMediaSend'
+import { useStarredIds, useToggleStar } from '@/hooks/useStars'
 import type { Message } from '@/lib/types'
 import { supabase } from '@/lib/supabase'
 
@@ -45,6 +47,8 @@ export function GroupRoomPage() {
   const messagesQuery = useRoomMessages(groupId)
   const sendMessage = useSendRoomMessage(groupId)
   const markRead = useMarkRoomRead()
+  const starredIds = useStarredIds(myUid, 'room', groupId)
+  const toggleStarMutation = useToggleStar(myUid, 'room', groupId)
   const media = useGroupMediaSend({
     roomId: groupId,
     myUid,
@@ -190,6 +194,14 @@ export function GroupRoomPage() {
                 onOpenImage={(src) => window.open(src, '_blank', 'noopener')}
                 onMediaLoad={() => {}}
                 room
+                starred={(starredIds.data ?? []).includes(String(message.id))}
+                onToggleStar={(target) => {
+                  toggleStarMutation.mutate(target.id, {
+                    onSuccess: (nowStarred) =>
+                      toast.success(nowStarred ? t('star.added') : t('star.removed')),
+                    onError: (error) => toast.error(errorMessage(error)),
+                  })
+                }}
               />
             ))}
           </div>

@@ -8,6 +8,7 @@ import {
   ImageOff,
   Pencil,
   Share2,
+  Star,
   Trash2,
   MapPin,
   Mic,
@@ -21,6 +22,7 @@ import { mediaUrl, messageImageSrc } from '@/lib/media'
 import { SafeImage } from '@/components/ui/safe-image'
 import { ViewOnceCard } from '@/features/chat/ViewOnceCard'
 import { PollCard } from '@/features/chat/PollCard'
+import { useTranslation } from 'react-i18next'
 import { useNow } from '@/hooks/useNow'
 import { isViewOnceFamily } from '@/lib/view-once'
 import { safeMapUrl, safePhoneHref, safePhoneLabel } from '@/lib/url-safety'
@@ -75,6 +77,8 @@ interface MessageBubbleProps {
   onEdit: (message: Message) => void
   onDelete: (message: Message) => void
   onForward?: (message: Message) => void
+  starred?: boolean
+  onToggleStar?: (message: Message) => void
   onOpenImage: (src: string) => void
   onMediaLoad: () => void
   /** True bila bubble dirender di room/grup (RPC poll berbeda). */
@@ -93,10 +97,13 @@ export function MessageBubble({
   onEdit,
   onDelete,
   onForward,
+  starred = false,
+  onToggleStar,
   onOpenImage,
   onMediaLoad,
   room = false,
 }: MessageBubbleProps) {
+  const { t } = useTranslation()
   const [pickerOpen, setPickerOpen] = useState(false)
   const deleted = message.is_deleted === true
   const isViewOnce = isViewOnceFamily(message.type)
@@ -158,6 +165,20 @@ export function MessageBubble({
           title="Edit"
         >
           <Pencil className="h-3.5 w-3.5" />
+        </button>
+      ) : null}
+      {onToggleStar && !message.client_status ? (
+        <button
+          type="button"
+          onClick={() => onToggleStar(message)}
+          className={cn(
+            'flex h-7 w-7 items-center justify-center rounded-full bg-surface/80 shadow-sm transition hover:bg-surface',
+            starred ? 'text-warning' : 'text-muted-2 hover:text-text',
+          )}
+          aria-label={starred ? t('star.remove') : t('star.add')}
+          title={starred ? t('star.remove') : t('star.add')}
+        >
+          <Star className={cn('h-3.5 w-3.5', starred && 'fill-current')} />
         </button>
       ) : null}
       {onForward && !message.client_status ? (

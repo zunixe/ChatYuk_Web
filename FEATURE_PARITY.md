@@ -108,8 +108,8 @@ Prioritas: **P0** = dipakai harian, pengguna langsung merasakan · **P1** = pent
 | C2 ✅ | Stories: composer (1 foto/video, caption, visibilitas) | Upload foto/video + teks (`story_composer_screen`) — web bisa pakai input file biasa | P1 | Sedang |
 | C3 | Timeline posts | Tabel `posts`, `post_likes`, `post_comments`, `post_shares` (`timeline_screen`, `post_detail_screen`) | P2 | Besar |
 | C4 | Nearby | `user_location_history` + geo (`nearby_screen`) — sensitif privasi, perlu keputusan | P2 | Sedang |
-| C5 | Leaderboard | `rpc('points_leaderboard')` | P2 | Kecil |
-| C6 | Point history | `point_events` (`point_history_screen`) | P2 | Kecil |
+| C5 ✅ | Leaderboard poin (weekly/alltime, RPC points_leaderboard) | `rpc('points_leaderboard')` | P2 | Kecil |
+| C6 ✅ | Riwayat poin (coin_ledger, bucket/type/amount) | `point_events` (`point_history_screen`) | P2 | Kecil |
 | C7 | Top up / subscribe | `topup_orders`, `subscriptions` — butuh payment gateway, jangan sentuh tanpa keputusan | ⛔ | Tunda |
 | C8 | Donate | `donate_screen` | P2 | Kecil |
 | C9 | Kontak & friend requests | `contact_service`, `friend_requests_screen`, `device_contacts_service` — device contacts butuh izin & pertimbangan privasi | P2 | Sedang |

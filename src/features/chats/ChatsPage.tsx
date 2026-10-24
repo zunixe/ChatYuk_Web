@@ -2,6 +2,7 @@ import {
   Archive,
   ArchiveRestore,
   CirclePlay,
+  Trophy,
   MessageCircle,
   Plus,
   RefreshCw,
@@ -131,6 +132,14 @@ export function ChatsPage() {
           title={t('stories.title')}
         >
           <CirclePlay className="h-5 w-5" />
+        </Link>
+        <Link
+          to="/points"
+          className="flex h-10 w-10 items-center justify-center rounded-xl text-muted transition hover:bg-panel hover:text-text"
+          aria-label={t('points.title')}
+          title={t('points.title')}
+        >
+          <Trophy className="h-5 w-5" />
         </Link>
         <Link
           to="/groups"

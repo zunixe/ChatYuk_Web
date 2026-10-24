@@ -575,6 +575,7 @@ Backup terakhir: `/data/workspace/backups/pre-google-dev-1792540007.dump` (1.9 M
 | 2026-10-23 | Grup di web: list, explore, join, chat teks, realtime. Join server GRATIS (jangan tampilkan `join_paid`) |
 | 2026-10-23 | FEATURE_PARITY.md: peta gap fitur mobile vs web + urutan eksekusi disetujui |
 | 2026-10-23 | FEATURE_PARITY.md v2: + bagian 7 Paritas UI (token, tipografi, per layar). Diterapkan cepat: --online #4CAF50, --danger #F44336, reaksi +😁 |
+| 2026-10-24 | Fase S: C5/C6 poin (leaderboard + riwayat coin_ledger) |
 | 2026-10-24 | Fase S: C1/C2 Stories (tray story_tray, viewer story_slides, like, mark-seen, composer) |
 | 2026-10-24 | Fase C: B13 mention @nama (autocomplete, jsonb mentions, highlight) |
 | 2026-10-24 | Fase C: B10 video sekali-lihat (kirim `video_once`; siklus buka -> tutup -> `video_once_expired` terverifikasi) |

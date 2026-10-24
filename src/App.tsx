@@ -14,6 +14,7 @@ import { OnboardingPage } from '@/features/auth/OnboardingPage'
 import { NewChatPage } from '@/features/chats/NewChatPage'
 import { GroupsPage } from '@/features/groups/GroupsPage'
 import { StoriesPage } from '@/features/stories/StoriesPage'
+import { PointsPage } from '@/features/points/PointsPage'
 import { GroupRoomPage } from '@/features/groups/GroupRoomPage'
 import { GroupMediaPage } from '@/features/groups/GroupMediaPage'
 import { SettingsPage } from '@/features/settings/SettingsPage'
@@ -146,6 +147,7 @@ export default function App() {
               </Route>
               <Route path="/new-chat" element={<NewChatPage />} />
               <Route path="/stories" element={<StoriesPage />} />
+              <Route path="/points" element={<PointsPage />} />
               <Route path="/groups" element={<GroupsPage />} />
               <Route path="/groups/:groupId" element={<GroupRoomPage />} />
               <Route path="/groups/:groupId/media" element={<GroupMediaPage />} />

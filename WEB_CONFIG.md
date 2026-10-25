@@ -542,6 +542,15 @@ Backup terakhir: `/data/workspace/backups/pre-google-dev-1792540007.dump` (1.9 M
 
 ---
 
+## 10b. Dokumen pendamping
+
+| Dokumen | Isi |
+|---|---|
+| `STATUS.md` | **Rangkuman status akhir**: 29/33 item paritas, 97 test, rekap per kategori, 4 sisa item + alasan, 12 jebakan kontrak, insiden ops, rekomendasi urutan berikutnya |
+| `FEATURE_PARITY.md` | Perbandingan rinci mobile vs web (gap berprioritas), termasuk bagian 7 paritas UI |
+| `GROUPS.md` | Kontrak grup/room: RPC, path storage `room_<id>`, aturan poin |
+| `MEDIA_PRIVACY_OPTIONS.md` | Opsi privasi media + hasil uji bucket |
+
 ## 11. Drift / catatan lokal
 
 | Item | Status |
@@ -575,6 +584,7 @@ Backup terakhir: `/data/workspace/backups/pre-google-dev-1792540007.dump` (1.9 M
 | 2026-10-23 | Grup di web: list, explore, join, chat teks, realtime. Join server GRATIS (jangan tampilkan `join_paid`) |
 | 2026-10-23 | FEATURE_PARITY.md: peta gap fitur mobile vs web + urutan eksekusi disetujui |
 | 2026-10-23 | FEATURE_PARITY.md v2: + bagian 7 Paritas UI (token, tipografi, per layar). Diterapkan cepat: --online #4CAF50, --danger #F44336, reaksi +😁 |
+| 2026-10-24 | STATUS.md: rangkuman akhir paritas (29/33), sisa B11/B12/C7/C10 |
 | 2026-10-24 | Fase S: C4 Nearby dengan pagar privasi (persetujuan dulu, server hanya kirim jarak, bisa dimatikan) |
 | 2026-10-24 | Fase S: C9 Kontak (contact_messages) + friend requests (inbox/outbox) |
 | 2026-10-24 | Fase S: C8 Donate (QRIS + USDT TRC20/ERC20/BEP20/Morph, salin alamat) |

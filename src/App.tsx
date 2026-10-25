@@ -18,6 +18,7 @@ import { PointsPage } from '@/features/points/PointsPage'
 import { TimelinePage } from '@/features/timeline/TimelinePage'
 import { DonatePage } from '@/features/donate/DonatePage'
 import { ContactPage } from '@/features/contact/ContactPage'
+import { NearbyPage } from '@/features/nearby/NearbyPage'
 import { GroupRoomPage } from '@/features/groups/GroupRoomPage'
 import { GroupMediaPage } from '@/features/groups/GroupMediaPage'
 import { SettingsPage } from '@/features/settings/SettingsPage'
@@ -154,6 +155,7 @@ export default function App() {
               <Route path="/timeline" element={<TimelinePage />} />
               <Route path="/donate" element={<DonatePage />} />
               <Route path="/contact" element={<ContactPage />} />
+              <Route path="/nearby" element={<NearbyPage />} />
               <Route path="/groups" element={<GroupsPage />} />
               <Route path="/groups/:groupId" element={<GroupRoomPage />} />
               <Route path="/groups/:groupId/media" element={<GroupMediaPage />} />

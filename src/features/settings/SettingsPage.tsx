@@ -6,6 +6,8 @@ import {
   ChevronRight,
   Heart,
   Info,
+  Mail,
+  MapPin,
   KeyRound,
   LogOut,
   Languages,
@@ -981,13 +983,29 @@ export function SettingsPage() {
           Keluar dari akun
         </Button>
 
-        <Link
-          to="/donate"
-          className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-panel px-3 py-2.5 text-[12.5px] font-medium text-text transition hover:border-primary/40"
-        >
-          <Heart className="h-4 w-4 text-danger" />
-          Donasi
-        </Link>
+        <div className="mt-4 grid grid-cols-3 gap-1.5">
+          <Link
+            to="/nearby"
+            className="flex flex-col items-center gap-1 rounded-xl border border-border bg-panel px-2 py-2.5 text-[11px] font-medium text-text transition hover:border-primary/40"
+          >
+            <MapPin className="h-4 w-4 text-accent" />
+            Sekitar
+          </Link>
+          <Link
+            to="/contact"
+            className="flex flex-col items-center gap-1 rounded-xl border border-border bg-panel px-2 py-2.5 text-[11px] font-medium text-text transition hover:border-primary/40"
+          >
+            <Mail className="h-4 w-4 text-primary" />
+            Kontak
+          </Link>
+          <Link
+            to="/donate"
+            className="flex flex-col items-center gap-1 rounded-xl border border-border bg-panel px-2 py-2.5 text-[11px] font-medium text-text transition hover:border-primary/40"
+          >
+            <Heart className="h-4 w-4 text-danger" />
+            Donasi
+          </Link>
+        </div>
 
         <p className="mt-5 text-center text-[10px] text-muted-2">
           Dibuat dengan hati untuk ngobrol tanpa ribet.

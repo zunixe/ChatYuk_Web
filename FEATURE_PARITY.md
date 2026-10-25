@@ -107,7 +107,7 @@ Prioritas: **P0** = dipakai harian, pengguna langsung merasakan · **P1** = pent
 | C1 ✅ | Stories: tray + viewer (auto-advance, like, mark-seen) | Tabel `stories`, `story_views`, `story_likes`, `story_mutes` | P1 | Besar |
 | C2 ✅ | Stories: composer (1 foto/video, caption, visibilitas) | Upload foto/video + teks (`story_composer_screen`) — web bisa pakai input file biasa | P1 | Sedang |
 | C3 ✅ | Timeline posts (feed, like, komentar, share, hapus) | Tabel `posts`, `post_likes`, `post_comments`, `post_shares` (`timeline_screen`, `post_detail_screen`) | P2 | Besar |
-| C4 | Nearby | `user_location_history` + geo (`nearby_screen`) — sensitif privasi, perlu keputusan | P2 | Sedang |
+| C4 ✅ | Nearby (RPC nearby_users; hanya jarak, wajib persetujuan, bisa dimatikan) | `user_location_history` + geo (`nearby_screen`) — sensitif privasi, perlu keputusan | P2 | Sedang |
 | C5 ✅ | Leaderboard poin (weekly/alltime, RPC points_leaderboard) | `rpc('points_leaderboard')` | P2 | Kecil |
 | C6 ✅ | Riwayat poin (coin_ledger, bucket/type/amount) | `point_events` (`point_history_screen`) | P2 | Kecil |
 | C7 | Top up / subscribe | `topup_orders`, `subscriptions` — butuh payment gateway, jangan sentuh tanpa keputusan | ⛔ | Tunda |

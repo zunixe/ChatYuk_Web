@@ -4,6 +4,7 @@ import {
   Camera,
   Check,
   ChevronRight,
+  Heart,
   Info,
   KeyRound,
   LogOut,
@@ -979,6 +980,14 @@ export function SettingsPage() {
           <LogOut className="h-4 w-4" />
           Keluar dari akun
         </Button>
+
+        <Link
+          to="/donate"
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-panel px-3 py-2.5 text-[12.5px] font-medium text-text transition hover:border-primary/40"
+        >
+          <Heart className="h-4 w-4 text-danger" />
+          Donasi
+        </Link>
 
         <p className="mt-5 text-center text-[10px] text-muted-2">
           Dibuat dengan hati untuk ngobrol tanpa ribet.

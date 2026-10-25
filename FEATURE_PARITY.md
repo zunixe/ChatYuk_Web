@@ -112,7 +112,7 @@ Prioritas: **P0** = dipakai harian, pengguna langsung merasakan · **P1** = pent
 | C6 ✅ | Riwayat poin (coin_ledger, bucket/type/amount) | `point_events` (`point_history_screen`) | P2 | Kecil |
 | C7 | Top up / subscribe | `topup_orders`, `subscriptions` — butuh payment gateway, jangan sentuh tanpa keputusan | ⛔ | Tunda |
 | C8 ✅ | Donate (QRIS + 4 jaringan USDT, salin alamat) | `donate_screen` | P2 | Kecil |
-| C9 | Kontak & friend requests | `contact_service`, `friend_requests_screen`, `device_contacts_service` — device contacts butuh izin & pertimbangan privasi | P2 | Sedang |
+| C9 ✅ | Kontak (pesan) & friend requests (inbox/outbox, terima/tolak/batal) | `contact_service`, `friend_requests_screen`, `device_contacts_service` — device contacts butuh izin & pertimbangan privasi | P2 | Sedang |
 | C10 | Panggilan | `call_service`, `call_session_*` (WebRTC) — sangat besar; butuh signaling + TURN + uji lintas platform | ⛔ | Fase tersendiri |
 
 ---

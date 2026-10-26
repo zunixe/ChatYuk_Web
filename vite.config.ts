@@ -9,9 +9,14 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    // PWA SENGAJA DINONAKTIFKAN: service worker menyajikan index.html lama dari
+    // precache sehingga perubahan rute (mis. landing ke /new-chat) tidak
+    // terlihat di browser yang pernah membuka situs. Header Caddy sudah
+    // no-cache, jadi tanpa SW pembaruan selalu langsung terpakai.
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: false,
+      selfDestroying: true,
       manifest: {
         name: 'ChatYuk Web',
         short_name: 'ChatYuk',

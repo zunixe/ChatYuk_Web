@@ -29,7 +29,7 @@ export function LoginPage() {
     setLoading(true)
     try {
       await signInWithPassword(email.trim(), password)
-      navigate('/new-chat', { replace: true })
+      navigate('/online', { replace: true })
     } catch (submitError) {
       setError(errorMessage(submitError))
     } finally {

@@ -119,7 +119,7 @@ export function ChatsPage() {
           ) : null}
         </button>
         <Link
-          to="/new-chat"
+          to="/online"
           className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-primary transition hover:bg-primary/15"
           aria-label={t('online.title')}
           title={t('online.title')}
@@ -262,7 +262,7 @@ export function ChatsPage() {
                 Lihat semua
               </Button>
             ) : (
-              <Link to="/new-chat" className="mt-4">
+              <Link to="/online" className="mt-4">
                 <Button size="sm">
                   <Plus className="h-4 w-4" />
                   {t('chats.findFriend')}

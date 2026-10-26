@@ -72,7 +72,7 @@ function PublicOnly({ children }: { children: ReactNode }) {
   if (!initialized) return <FullPageSpinner />
   if (session) {
     if (profileLoading) return <FullPageSpinner label="Menyiapkan profil…" />
-    return <Navigate to={needsOnboarding(profile) ? '/onboarding' : '/new-chat'} replace />
+    return <Navigate to={needsOnboarding(profile) ? '/onboarding' : '/online'} replace />
   }
   return <>{children}</>
 }
@@ -88,7 +88,7 @@ function OnboardingGate() {
   if (!session) return <Navigate to="/login" replace />
   if (profileError) return <ConnectionError />
   if (profileLoading) return <FullPageSpinner label="Menyiapkan profil…" />
-  if (!needsOnboarding(profile)) return <Navigate to="/new-chat" replace />
+  if (!needsOnboarding(profile)) return <Navigate to="/online" replace />
   return <OnboardingPage />
 }
 
@@ -120,7 +120,7 @@ export default function App() {
         <BrowserRouter>
           <Routes>
             {/* Landing = menu Online (bukan daftar Chat), sesuai Android. */}
-            <Route path="/" element={<Navigate to="/new-chat" replace />} />
+            <Route path="/" element={<Navigate to="/online" replace />} />
             <Route
               path="/login"
               element={
@@ -151,7 +151,9 @@ export default function App() {
                 <Route index element={<ChatsEmptyState />} />
                 <Route path=":chatId" element={<ChatPage />} />
               </Route>
-              <Route path="/new-chat" element={<NewChatPage />} />
+              <Route path="/online" element={<NewChatPage />} />
+            {/* Kompatibilitas: URL lama /new-chat -> /online (menu Online). */}
+            <Route path="/new-chat" element={<Navigate to="/online" replace />} />
               <Route path="/stories" element={<StoriesPage />} />
               <Route path="/points" element={<PointsPage />} />
               <Route path="/timeline" element={<TimelinePage />} />
@@ -163,7 +165,7 @@ export default function App() {
               <Route path="/groups/:groupId/media" element={<GroupMediaPage />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Route>
-            <Route path="*" element={<Navigate to="/new-chat" replace />} />
+            <Route path="*" element={<Navigate to="/online" replace />} />
           </Routes>
           <Toaster
             theme={resolvedTheme}

@@ -29,7 +29,7 @@ export function ChatsEmptyState() {
       </p>
 
       <div className="mt-6 flex flex-col items-center gap-2 sm:flex-row">
-        <Link to="/new-chat">
+        <Link to="/online">
           <Button>
             <MessageSquareText className="h-4 w-4" />
             {t('chats.startNew')}

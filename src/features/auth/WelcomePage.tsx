@@ -93,7 +93,7 @@ export function WelcomePage() {
       })
       await refreshProfile()
       toast.success('Selamat datang di ChatYuk!')
-      navigate('/new-chat', { replace: true })
+      navigate('/online', { replace: true })
     } catch (submitError) {
       setError(errorMessage(submitError))
       setLoading(false)

@@ -33,7 +33,7 @@ import { useUiStore } from '@/stores/ui'
 // Menu utama — sama dengan aplikasi Android: Online & Chat.
 // Pengaturan tetap ada di menu profil (desktop) dan header Chat (mobile).
 const NAV = [
-  { to: '/new-chat', label: 'Online', icon: Users },
+  { to: '/online', label: 'Online', icon: Users },
   { to: '/chats', label: 'Chat', icon: MessageCircle },
 ]
 

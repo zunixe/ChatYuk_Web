@@ -7,7 +7,7 @@ import {
   Users,
   WifiOff,
 } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { LogoMark } from '@/components/brand/Logo'
@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useChats, unreadTotal } from '@/hooks/useChatData'
 import { useChatListRealtime } from '@/hooks/useChatRealtime'
+import { useMessageNotifications } from '@/hooks/useMessageNotifications'
 import { useOnlineStatus, usePresenceHeartbeat } from '@/hooks/usePresenceHeartbeat'
 import { resolveAvatar } from '@/lib/media'
 import { cn } from '@/lib/utils'
@@ -47,6 +48,18 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   usePresenceHeartbeat(profile?.id, profile?.status)
   useChatListRealtime(profile?.id)
+  // B11: notifikasi lokal saat pesan masuk dan tab sedang disembunyikan.
+  useMessageNotifications(profile?.id)
+
+  // Notifikasi yang diklik → navigasi ke chat terkait.
+  useEffect(() => {
+    function onNavigate(event: Event) {
+      const detail = (event as CustomEvent<string>).detail
+      if (detail) navigate(detail)
+    }
+    window.addEventListener('chatyuk:navigate', onNavigate)
+    return () => window.removeEventListener('chatyuk:navigate', onNavigate)
+  }, [navigate])
   const chatsQuery = useChats(profile?.id)
   const chats = chatsQuery.data ?? []
   const unread = profile ? unreadTotal(chats, profile.id) : 0

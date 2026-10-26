@@ -48,6 +48,7 @@ import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore, type ThemeMode } from '@/stores/ui'
 import { setLanguage, type Lang } from '@/lib/i18n'
+import { NotificationSettings } from '@/features/settings/NotificationSettings'
 import type { PrivacySettings } from '@/lib/types'
 
 const PRIVACY_OPTIONS = [
@@ -801,6 +802,8 @@ export function SettingsPage() {
           </div>
         </section>
 
+        <NotificationSettings />
+
         <section className="mt-4 overflow-hidden rounded-3xl border border-border bg-surface shadow-sm">
           <div className="flex items-center gap-3 px-5 py-4">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-panel text-muted">
@@ -818,7 +821,7 @@ export function SettingsPage() {
           </div>
           <div className="border-t border-border/60 px-5 py-3 text-[10.5px] leading-relaxed text-muted-2">
             Percakapan 1:1 tanpa enkripsi ujung-ke-ujung. Jangan kirim informasi sensitif.
-            Fitur panggilan, polling, dan push notification belum aktif di versi web.
+            Fitur panggilan dan push latar belakang penuh belum aktif di versi web.
             <div className="mt-1.5 flex flex-wrap gap-1.5">
               {Object.entries(config.features).map(([key, enabled]) => (
                 <span

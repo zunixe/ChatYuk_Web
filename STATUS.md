@@ -9,8 +9,8 @@ Diperbarui: 2026-10-24. Dokumen rinci: `FEATURE_PARITY.md`, `GROUPS.md`, `WEB_CO
 
 | Metrik | Nilai |
 |---|---|
-| Item paritas selesai | **30 / 33** ✅ |
-| Sisa (butuh keputusan/infrastruktur) | 3 (B11, C7, C10) |
+| Item paritas selesai | **30 / 33** ✅ (+1 sebagian: B11) |
+| Sisa (butuh keputusan/infrastruktur) | 2 (C7, C10) + 1 sebagian (B11 push latar) |
 | Test | **97 passing / 15 file** |
 | Lint (`oxlint`) | 12 warning, **0 error** (baseline lama) |
 | Typecheck | bersih (`tsc --noEmit`) |
@@ -50,7 +50,7 @@ Supabase lokal + Caddy + ngrok; `chatyuk-keepalive`, `chatyuk-supabase`, **`ngro
 
 | Kode | Item | Kenapa berhenti di sini |
 |---|---|---|
-| **B11** | Notifikasi browser | Mekanisme beda dari FCM: butuh VAPID + Service Worker + izin. Perlu desain & uji terpisah (fase sendiri). |
+| **B11 (sisa)** | Push latar belakang | Notifikasi **lokal sudah jalan** (tab terbuka, termasuk di latar belakang). Untuk push saat tab benar-benar tertutup perlu VAPID keypair + pengirim dari server. |
 
 | **C7** | Top up / subscribe | Menyentuh **uang nyata**; butuh payment gateway, keputusan bisnis, dan kepatuhan. Jangan diimplementasikan tanpa keputusan eksplisit. |
 | **C10** | Panggilan (voice/video) | WebRTC: butuh signaling + **TURN/STUN** dan uji lintas perangkat nyata. Bukan pekerjaan satu iterasi. |

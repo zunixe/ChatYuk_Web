@@ -96,7 +96,7 @@ Prioritas: **P0** = dipakai harian, pengguna langsung merasakan · **P1** = pent
 | B8 ✅ | Reset password | Mobile: `reset_password_screen.dart` — Supabase `resetPasswordForEmail` | P0 | Kecil |
 | B9 ✅ | Link email ke akun anon (sudah ada di Settings; terverifikasi E2E) | Mobile: `link_email_screen.dart` — `updateUser({email})` | P1 | Kecil |
 | B10 ✅ | View-once video (kirim + siklus expire terverifikasi) | `video_once` / `video_once_expired` + `duration_ms` (web sudah render kartu, pastikan expiry timer sama) | P1 | Kecil |
-| B11 | Notifikasi browser | Mobile pakai FCM (`push_topic_service`, `notification_prefs`). Web: Notification API + Service Worker — mekanisme beda, perlu desain terpisah | P1 | Besar (fase sendiri) |
+| B11 🟡 | Notifikasi browser | **Selesai: notifikasi lokal** saat pesan masuk selama tab terbuka (boleh di latar belakang) + izin/preferensi + kirim contoh. **Belum: push latar belakang penuh** — butuh VAPID keypair + pengirim dari server | P1 | Sisa: konfigurasi VAPID |
 | B12 ✅ | Unsend/undo hapus (toast Undo, `is_deleted=false`) | Mobile punya snackbar UNDO (`is_deleted=false`); web sudah hapus soft, tinggal UI undo | P2 | Kecil |
 | B13 ✅ | Mention `@nama` (autocomplete + jsonb + highlight) | `messages.mentions` (jsonb) — parse & highlight @nama | P2 | Sedang |
 

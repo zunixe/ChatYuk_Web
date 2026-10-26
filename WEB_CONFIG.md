@@ -584,6 +584,7 @@ Backup terakhir: `/data/workspace/backups/pre-google-dev-1792540007.dump` (1.9 M
 | 2026-10-23 | Grup di web: list, explore, join, chat teks, realtime. Join server GRATIS (jangan tampilkan `join_paid`) |
 | 2026-10-23 | FEATURE_PARITY.md: peta gap fitur mobile vs web + urutan eksekusi disetujui |
 | 2026-10-23 | FEATURE_PARITY.md v2: + bagian 7 Paritas UI (token, tipografi, per layar). Diterapkan cepat: --online #4CAF50, --danger #F44336, reaksi +😁 |
+| 2026-10-26 | Landing diarahkan ke menu Online (`/` & wildcard -> `/new-chat`), kartu sambutan dipindah ke Online, empty state Chat jadi netral |
 | 2026-10-24 | B11 (sebagian): notifikasi browser lokal (izin, preferensi, kirim contoh, auto-notif saat tab tersembunyi). Push latar butuh VAPID |
 | 2026-10-24 | STATUS.md: rangkuman akhir paritas (29/33), sisa B11/B12/C7/C10 |
 | 2026-10-24 | Fase S: C4 Nearby dengan pagar privasi (persetujuan dulu, server hanya kirim jarak, bisa dimatikan) |

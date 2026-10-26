@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, MessageCirclePlus, Search, Settings, Sparkles, X } from 'lucide-react'
+import { MessageCirclePlus, Search, Settings, Sparkles, X } from 'lucide-react'
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
@@ -9,7 +9,7 @@ import { CountryMultiSelect } from '@/features/chats/CountryMultiSelect'
 import { GenderDropdown, type GenderFilter } from '@/features/chats/GenderDropdown'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/feedback'
-import { useAvatars, useOnlineUsers, usePresenceFor, useUserSearch } from '@/hooks/useChatData'
+import { useAvatars, useChats, useOnlineUsers, usePresenceFor, useUserSearch } from '@/hooks/useChatData'
 import { useBlockedSet } from '@/hooks/useBlocks'
 import { ensureChat } from '@/lib/api/chats'
 import { errorMessage } from '@/lib/errors'
@@ -108,6 +108,9 @@ export function NewChatPage() {
   const deferredTerm = useDeferredValue(term)
 
   const myUid = profile?.id
+  // Untuk kartu sambutan: tampil hanya bila pengguna belum punya obrolan.
+  const chats = useChats(myUid)
+  const hasConversations = (chats.data?.length ?? 0) > 0
   const onlineQuery = useOnlineUsers(null)
   const searchQuery = useUserSearch(deferredTerm, myUid)
 
@@ -161,18 +164,11 @@ export function NewChatPage() {
     <div className="h-full overflow-y-auto overscroll-contain">
       <div className="mx-auto flex min-h-full w-full max-w-2xl flex-col px-4 pb-10 pt-[max(0.9rem,env(safe-area-inset-top))] sm:px-6 md:pt-6">
         <header className="flex items-start gap-3">
-          <Link
-            to="/chats"
-            className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted transition hover:bg-panel hover:text-text md:hidden"
-            aria-label={t('common.close')}
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
           <div className="min-w-0 flex-1">
             <h1 className="font-display text-[24px] font-semibold tracking-tight text-text">
               {t('online.title')}
             </h1>
-            <p className="mt-0.5 text-[12px] text-muted">{t('auth.tagline')}</p>
+            <p className="mt-0.5 text-[12px] text-muted">{t('online.subtitle')}</p>
           </div>
           <button
             type="button"
@@ -195,6 +191,22 @@ export function NewChatPage() {
             <Settings className="h-5 w-5" />
           </Link>
         </header>
+
+        {!hasConversations && !searchOpen ? (
+          <div className="mt-5 rounded-2xl border border-border bg-surface px-4 py-4">
+            <div className="flex items-start gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Sparkles className="h-4 w-4" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[13px] font-semibold text-text">{t('online.welcomeTitle')}</p>
+                <p className="mt-1 text-[11.5px] leading-relaxed text-muted">
+                  {t('online.welcomeHint')}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         {searchOpen ? (
           <div className="relative mt-5">

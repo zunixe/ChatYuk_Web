@@ -119,6 +119,8 @@ export default function App() {
       <TooltipProvider delayDuration={300}>
         <BrowserRouter>
           <Routes>
+            {/* Landing = menu Online (bukan daftar Chat), sesuai Android. */}
+            <Route path="/" element={<Navigate to="/new-chat" replace />} />
             <Route
               path="/login"
               element={
@@ -161,7 +163,7 @@ export default function App() {
               <Route path="/groups/:groupId/media" element={<GroupMediaPage />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Route>
-            <Route path="*" element={<Navigate to="/chats" replace />} />
+            <Route path="*" element={<Navigate to="/new-chat" replace />} />
           </Routes>
           <Toaster
             theme={resolvedTheme}

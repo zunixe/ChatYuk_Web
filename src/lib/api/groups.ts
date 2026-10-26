@@ -494,6 +494,18 @@ export async function sendRoomMedia(input: {
   return asNumber(asRecord(data).id)
 }
 
+/** Hapus pesan grup milik sendiri (soft delete). */
+export async function deleteRoomMessage(messageId: number): Promise<void> {
+  const { error } = await supabase.from('messages').update({ is_deleted: true }).eq('id', messageId)
+  if (error) throw error
+}
+
+/** Batalkan hapus pesan grup (UNDO) — `is_deleted = false`. */
+export async function undeleteRoomMessage(messageId: number): Promise<void> {
+  const { error } = await supabase.from('messages').update({ is_deleted: false }).eq('id', messageId)
+  if (error) throw error
+}
+
 /** Perbarui payload lokasi (koordinat bergerak) — hanya pesan milik sendiri. */
 export async function updateRoomLocation(messageId: number, payload: string): Promise<void> {
   const { error } = await supabase.from('messages').update({ text: payload }).eq('id', messageId)

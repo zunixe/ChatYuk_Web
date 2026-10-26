@@ -168,6 +168,7 @@ export default function App() {
             position="top-center"
             richColors
             closeButton
+            expand
             toastOptions={{ duration: 3200 }}
           />
         </BrowserRouter>

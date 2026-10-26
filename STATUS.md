@@ -9,8 +9,8 @@ Diperbarui: 2026-10-24. Dokumen rinci: `FEATURE_PARITY.md`, `GROUPS.md`, `WEB_CO
 
 | Metrik | Nilai |
 |---|---|
-| Item paritas selesai | **29 / 33** ✅ |
-| Sisa (butuh keputusan/infrastruktur) | 4 (B11, B12, C7, C10) |
+| Item paritas selesai | **30 / 33** ✅ |
+| Sisa (butuh keputusan/infrastruktur) | 3 (B11, C7, C10) |
 | Test | **97 passing / 15 file** |
 | Lint (`oxlint`) | 12 warning, **0 error** (baseline lama) |
 | Typecheck | bersih (`tsc --noEmit`) |
@@ -30,7 +30,7 @@ Status layanan saat dokumen ini dibuat: `https://defense-subtract-untrimmed.ngro
 Login email, Google OAuth (client dev terpisah), anonymous + **link email** (terverifikasi: UID tetap, `is_anonymous=false`, `is_registered=true`), registrasi (nickname/gender/umur/negara/kota), **reset password** (`/reset-password`, dua keadaan: minta tautan / set password baru), gate `require_registration` dari `app_settings`.
 
 ### Chat private — ~97%
-Teks, gambar, **album** (`album_id`, maks 10, satu bubble grid), voice (m4a agar terbaca HP), video, file, lokasi, **lokasi LIVE** (durasi 15 mnt/1 jam/8 jam, refresh 30 dtk, badge LIVE + countdown), sticker (render + **picker kirim**), poll (render + vote), contact, gift, **video sekali-lihat** (kirim + siklus `video_once` → `video_once_expired`), reply, reaksi, edit, hapus (soft) + retry, typing, read receipt, pin, mute, **arsip** (`archived_by`), **bintang pesan** (`starred_messages`), blokir 2 arah + lapor, **mention `@nama`** (autocomplete + jsonb + highlight), **forward** (chat & grup), offline outbox.
+Teks, gambar, **album** (`album_id`, maks 10, satu bubble grid), voice (m4a agar terbaca HP), video, file, lokasi, **lokasi LIVE** (durasi 15 mnt/1 jam/8 jam, refresh 30 dtk, badge LIVE + countdown), sticker (render + **picker kirim**), poll (render + vote), contact, gift, **video sekali-lihat** (kirim + siklus `video_once` → `video_once_expired`), reply, reaksi, edit, hapus (soft) + retry + **undo**, typing, read receipt, pin, mute, **arsip** (`archived_by`), **bintang pesan** (`starred_messages`), blokir 2 arah + lapor, **mention `@nama`** (autocomplete + jsonb + highlight), **forward** (chat & grup), offline outbox.
 
 ### Grup / room privat — 100% (fase 1–10)
 Buat grup (300/450 poin, dipotong **server**), list, explore, join (gratis di server), chat teks, **media grup**, **poll**, **lokasi live**, **galeri media**, **kode gabung**, dan panel **Info grup**: anggota, kick, jadikan admin, undang, **approve/reject** permintaan bergabung, ganti ikon, atur/hapus password, perpanjang, hapus, keluar.
@@ -51,7 +51,7 @@ Supabase lokal + Caddy + ngrok; `chatyuk-keepalive`, `chatyuk-supabase`, **`ngro
 | Kode | Item | Kenapa berhenti di sini |
 |---|---|---|
 | **B11** | Notifikasi browser | Mekanisme beda dari FCM: butuh VAPID + Service Worker + izin. Perlu desain & uji terpisah (fase sendiri). |
-| **B12** | Undo hapus pesan | Fungsional (soft delete) sudah jalan; yang belum hanya snackbar UNDO. Nilai kecil, risiko rendah → bisa kapan saja. |
+
 | **C7** | Top up / subscribe | Menyentuh **uang nyata**; butuh payment gateway, keputusan bisnis, dan kepatuhan. Jangan diimplementasikan tanpa keputusan eksplisit. |
 | **C10** | Panggilan (voice/video) | WebRTC: butuh signaling + **TURN/STUN** dan uji lintas perangkat nyata. Bukan pekerjaan satu iterasi. |
 
@@ -102,9 +102,8 @@ Cek kesehatan: `curl -o /dev/null -w '%{http_code}' https://defense-subtract-unt
 
 ## 7. Rekomendasi urutan berikutnya
 
-1. **B12 undo hapus** — sangat kecil, menutup satu-satunya selisih fungsional chat.
-2. **B11 notifikasi browser** — fase tersendiri; mulai dari desain izin + Service Worker, lalu uji di perangkat.
-3. **C10 panggilan** — hanya jika ada kebutuhan produk jelas dan infrastruktur TURN siap.
-4. **C7 top-up** — tunggu keputusan bisnis/payment.
+1. **B11 notifikasi browser** — fase tersendiri; mulai dari desain izin + Service Worker, lalu uji di perangkat.
+2. **C10 panggilan** — hanya jika ada kebutuhan produk jelas dan infrastruktur TURN siap.
+3. **C7 top-up** — tunggu keputusan bisnis/payment.
 
 Selain itu, sisa pekerjaan yang bernilai: uji visual lintas perangkat (Android ↔ web) yang selama ini **belum bisa diverifikasi otomatis** karena `uiautomator` tidak menangkap UI aplikasi dengan benar.

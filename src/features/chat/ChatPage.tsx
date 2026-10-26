@@ -73,6 +73,7 @@ import {
 } from '@/lib/api/chats'
 import {
   deletePrivateMessage,
+  undeletePrivateMessage,
   editPrivateMessage,
   sendPrivateMessage,
   toggleReaction,
@@ -336,7 +337,21 @@ export function ChatPage() {
     try {
       await deletePrivateMessage(message.id)
       upsertMessageInCache(queryClient, chatId, { ...message, is_deleted: true, text: '' })
-      toast.success('Pesan dihapus.')
+      // UNDO (paritas Android): kembalikan is_deleted=false selama toast tampil.
+      toast.success('Pesan dihapus.', {
+        action: {
+          label: t('chat.undo'),
+          onClick: () => {
+            void undeletePrivateMessage(message.id)
+              .then(() => {
+                upsertMessageInCache(queryClient, chatId, { ...message, is_deleted: false })
+                toast.success(t('chat.undoDone'))
+              })
+              .catch((error) => toast.error(errorMessage(error)))
+          },
+        },
+        duration: 6000,
+      })
     } catch (error) {
       toast.error(errorMessage(error))
     }

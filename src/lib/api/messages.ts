@@ -226,3 +226,16 @@ export async function deletePrivateMessage(messageId: number): Promise<void> {
     .eq('id', messageId)
   if (error) throw error
 }
+
+/**
+ * Batalkan hapus (UNDO) — kembalikan `is_deleted = false`.
+ * Policy `messages_update_own` membatasi ke pengirim, sama seperti Android
+ * (`undeletePrivateMessage`).
+ */
+export async function undeletePrivateMessage(messageId: number): Promise<void> {
+  const { error } = await supabase
+    .from('private_messages')
+    .update({ is_deleted: false })
+    .eq('id', messageId)
+  if (error) throw error
+}

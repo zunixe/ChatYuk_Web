@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { errorMessage } from '@/lib/errors'
+import { deleteRoomMessage, undeleteRoomMessage } from '@/lib/api/groups'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/feedback'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
@@ -211,7 +212,25 @@ export function GroupRoomPage() {
                 onReact={() => {}}
                 onRetry={() => {}}
                 onEdit={() => {}}
-                onDelete={() => {}}
+                onDelete={(target) => {
+                  void deleteRoomMessage(target.id)
+                    .then(() => {
+                      void messagesQuery.refetch()
+                      toast.success(t('groups.messageDeleted'), {
+                        action: {
+                          label: t('chat.undo'),
+                          onClick: () => {
+                            void undeleteRoomMessage(target.id)
+                              .then(() => void messagesQuery.refetch())
+                              .then(() => toast.success(t('chat.undoDone')))
+                              .catch((error) => toast.error(errorMessage(error)))
+                          },
+                        },
+                        duration: 6000,
+                      })
+                    })
+                    .catch((error) => toast.error(errorMessage(error)))
+                }}
                 onOpenImage={(src) => window.open(src, '_blank', 'noopener')}
                 onMediaLoad={() => {}}
                 room
